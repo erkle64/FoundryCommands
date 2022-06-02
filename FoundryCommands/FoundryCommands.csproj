@@ -99,6 +99,9 @@
     <Reference Include="UnityEngine.InputModule">
       <HintPath>..\Libraries\UnityEngine.InputModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\Libraries\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>..\Libraries\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
@@ -110,6 +113,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FoundryCommands\CommandHandler.cs" />
     <Compile Include="FoundryCommands\FoundryCommandsLoader.cs" />
     <Compile Include="FoundryCommands\PluginComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
