@@ -87,12 +87,57 @@ namespace FoundryCommands
 
         public static CommandHandler[] commandHandlers = new CommandHandler[]
         {
+            new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
+                switch(arguments.Length)
+                {
+                    case 1:
+                        var range = float.Parse(arguments[0]);
+                        if(range < 38) range = 38;
+                        //if(range < 200) range = 200;
+                        range = ((int)range) - 0.5f;
+                        var range2 = range*2.0f;
+                        GameRoot.singleton.dragHelperGO.collider_area_xz.extents = new Vector3(range, 0.05f, range);
+                        GameRoot.singleton.dragHelperGO.collider_area_xz_elevated.extents = new Vector3(range, 0.05f, range);
+                        GameRoot.singleton.dragHelperGO.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO.collider_wall_x.extents = new Vector3(range, range, 0.05f);
+                        GameRoot.singleton.dragHelperGO.collider_wall_z.extents = new Vector3(0.05f, range, range);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.collider_area_xz.extents = new Vector3(range, 0.05f, range);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.collider_area_xz_elevated.extents = new Vector3(range, 0.05f, range);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.collider_wall_x.extents = new Vector3(range, range, 0.05f);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.collider_wall_z.extents = new Vector3(0.05f, range, range);
+
+                        GameRoot.singleton.dragHelperGO.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
+                        GameRoot.singleton.dragHelperGO.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
+                        GameRoot.singleton.dragHelperGO.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
+                        GameRoot.singleton.dragHelperGO_bulkDemolish.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        break;
+
+                    default:
+                        ChatFrame.addMessage(PoMgr._po("Usage: <b>/drag</b> <i>range</i>"));
+                        return;
+                }
+            }),
             new CommandHandler(@"^\/fly$", (string[] arguments) => {
                 PluginComponent.isFlying = !PluginComponent.isFlying;
             }),
             new CommandHandler(@"^\/flySpeed\s*?(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?))?\s*)?$", (string[] arguments) => {
-                log.LogMessage(string.Join(", ", arguments));
-
                 switch(arguments.Length)
                 {
                     case 1:
