@@ -15,7 +15,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = "com." + AUTHOR + "." + MODNAME,
-            VERSION = "1.0.0";
+            VERSION = "1.2.1";
 
         public static BepInEx.Logging.ManualLogSource log;
 
