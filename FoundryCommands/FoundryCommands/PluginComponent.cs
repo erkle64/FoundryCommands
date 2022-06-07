@@ -36,14 +36,14 @@ namespace FoundryCommands
             if (isFlying)
             {
                 motion.y = keyStates[(int)KeyType.Jump] ? flightSpeedVertical * Time.fixedDeltaTime : keyStates[(int)KeyType.Sprint] ? -flightSpeedVertical * Time.fixedDeltaTime : 0.0f;
-
+                
                 motion.x = motion.x * flightSpeedScale;
                 motion.z = motion.z * flightSpeedScale;
                 var motionXZ = new Vector2(motion.x, motion.z)/Time.fixedDeltaTime;
                 var mag = motionXZ.magnitude;
                 if (mag > flightSpeedScale*FoundryCommandsLoader.walkingSpeed)
                 {
-                    motionXZ = motionXZ.normalized * (flightSpeedScale * FoundryCommandsLoader.walkingSpeed * Time.fixedDeltaTime);
+                    motionXZ = motionXZ.normalized * (flightSpeedScale * FoundryCommandsLoader.walkingSpeed * Time.deltaTime);
                     motion.x = motionXZ.x;
                     motion.z = motionXZ.y;
                 }
