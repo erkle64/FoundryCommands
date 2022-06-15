@@ -16,6 +16,9 @@ All commands are case insensitve.
 
 #### Commands
 
+- **/drag** _range_  
+   Change the maximum range for drag building.  Use /drag 0 to restore default.
+
 - **/tp** _waypoint-name_  
    Teleport to the named waypoint.
 
