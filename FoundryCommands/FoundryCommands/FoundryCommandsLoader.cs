@@ -5,6 +5,11 @@ using HarmonyLib;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using System.Collections.Generic;
+using System.Threading;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace FoundryCommands
 {
@@ -15,7 +20,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = "com." + AUTHOR + "." + MODNAME,
-            VERSION = "1.2.1";
+            VERSION = "1.3.0";
 
         public static BepInEx.Logging.ManualLogSource log;
 
@@ -23,6 +28,9 @@ namespace FoundryCommands
         public static ConfigEntry<float> config_flight_verticalSpeed;
         public static ConfigEntry<float> config_flight_jumpInterval;
         public const float walkingSpeed = 6.0f;
+
+        public static string assemblyFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        public static string dumpFolder = Path.Combine(assemblyFolder, MODNAME);
 
         public FoundryCommandsLoader()
         {
@@ -59,30 +67,71 @@ namespace FoundryCommands
             {
                 var harmony = new Harmony(GUID);
 
-                var original = AccessTools.Method(typeof(ChatFrame), "onReturnCB");
-                var pre = AccessTools.Method(typeof(PluginComponent), "processChatEvent");
-                harmony.Patch(original, prefix: new HarmonyMethod(pre));
+                void applyPatch<O>(string _original, string prefix = "", string postfix = "")
+                {
+                    var originalMethod = AccessTools.Method(typeof(O), _original);
+                    if (prefix.Length > 0)
+                    {
+                        var prefixMethod = AccessTools.Method(typeof(PluginComponent), prefix);
+                        if (postfix.Length > 0)
+                        {
+                            var postfixMethod = AccessTools.Method(typeof(PluginComponent), postfix);
+                            harmony.Patch(originalMethod, prefix: new HarmonyMethod(prefixMethod), postfix: new HarmonyMethod(postfixMethod));
+                        }
+                        else
+                        {
+                            harmony.Patch(originalMethod, prefix: new HarmonyMethod(prefixMethod));
+                        }
+                    }
+                    else if (postfix.Length > 0)
+                    {
+                        var postfixMethod = AccessTools.Method(typeof(PluginComponent), postfix);
+                        harmony.Patch(originalMethod, postfix: new HarmonyMethod(postfixMethod));
+                    }
+                }
 
-                original = AccessTools.Method(typeof(UnityEngine.CharacterController), "Move");
-                pre = AccessTools.Method(typeof(PluginComponent), "characterMove");
-                harmony.Patch(original, prefix: new HarmonyMethod(pre));
+                applyPatch<ChatFrame>("onReturnCB", prefix: "processChatEvent");
+                applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
+                //applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
+                applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
+                applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
+                applyPatch<InteractableObject>("onClick", prefix: "onClickInteractableObject");
 
-                original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
+                var original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
                 var post = AccessTools.Method(typeof(PluginComponent), "characterIsGrounded");
                 harmony.Patch(original, postfix: new HarmonyMethod(post));
-
-                original = AccessTools.Method(typeof(RenderCharacter), "getMovementSoundPackBasedOnPosition");
-                post = AccessTools.Method(typeof(PluginComponent), "getMovementSoundPackBasedOnPosition");
-                harmony.Patch(original, postfix: new HarmonyMethod(post));
-
-                original = AccessTools.Method(typeof(GameRoot), "initInputRelay");
-                pre = AccessTools.Method(typeof(PluginComponent), "initInputRelay");
-                harmony.Patch(original, prefix: new HarmonyMethod(pre));
             }
             catch
             {
                 log.LogError("Harmony - FAILED to Apply Patch's!");
             }
+        }
+
+        ~FoundryCommandsLoader()
+        {
+            if (teleportTimer != null)
+            {
+                teleportTimer.Dispose();
+                teleportTimer = null;
+            }
+        }
+
+        private static Timer teleportTimer = null;
+
+        static void timer_Teleport(object state)
+        {
+            var wp = (Waypoint)state;
+
+            var character = GameRoot.getClientCharacter();
+            if (character == null)
+            {
+                ChatFrame.addMessage(PoMgr._po("Client character not found."));
+                return;
+            }
+
+            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
+            teleportTimer.Dispose();
+            teleportTimer = null;
         }
 
         public static CommandHandler[] commandHandlers = new CommandHandler[]
@@ -174,10 +223,28 @@ namespace FoundryCommands
 
                 foreach (var wp in character.getWaypointDict().Values)
                 {
-                    if (wp.description.ToLower() == wpName)
+                    if (wp.description.ToLower() == wpName.ToLower())
                     {
-                        GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0));
-                        GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
+                        ulong cidx;
+                        uint tidx;
+                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords((int)wp.waypointPosition.x, (int)wp.waypointPosition.y, (int)wp.waypointPosition.z, out cidx, out tidx);
+                        var chunk = ChunkManager.getChunkByWorldCoords((int)wp.waypointPosition.x, (int)wp.waypointPosition.z);
+                        if(chunk != null)
+                        {
+                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0));
+                            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
+                        }
+                        else
+                        {
+                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, "Ungenerated chunk.", 0));
+                            ChunkManager.generateNewChunksBasedOnPosition(wp.waypointPosition, ChunkManager._getChunkLoadDistance());
+                        }
+                        //else
+                        //{
+                        //    ChunkManager.generateNewChunksBasedOnPosition(wp.waypointPosition, 15);
+                        //    ChunkManager.generateNewChunksForGameStart(wp.waypointPosition);
+                        //    teleportTimer = new Timer(timer_TeleportWait, wp, 1000, 1000);
+                        //}
                         return;
                     }
                 }
@@ -245,6 +312,131 @@ namespace FoundryCommands
                         ChatFrame.addMessage(PoMgr._po("Usage: <b>/give</b> <i>name</i> <i>amount</i>"));
                         break;
                 }
+            }),
+            new CommandHandler(@"^\/dumpData(?:\s(minify))?", (string[] arguments) => {
+                bool minify = (arguments.Length >= 1 && arguments[0].ToLower() == "minify");
+
+                if (!Directory.Exists(dumpFolder)) Directory.CreateDirectory(dumpFolder);
+                var f = new StreamWriter(Path.Combine(dumpFolder, "idmap.json"), false);
+                void dumpEntry(string indent, string entry, params object[] args)
+                {
+                    if(minify) f.Write(entry, args);
+                    else f.WriteLine(indent+entry, args);
+                }
+                dumpEntry("", "{{");
+                void dumpDictionary<T>(string label, Il2CppSystem.Collections.Generic.Dictionary<ulong, T> dict, bool last = false)
+                {
+                    var identifier = typeof(T).GetProperty("identifier");
+                    var icon_identifier = typeof(T).GetProperty("icon_identifier");
+                    var name = typeof(T).GetProperty("name");
+                    var stackSize = typeof(T).GetProperty("stackSize");
+                    var category_identifier = typeof(T).GetProperty("category_identifier");
+                    var rowGroup_identifier = typeof(T).GetProperty("rowGroup_identifier");
+                    var sortingOrderWithinRowGroup = typeof(T).GetProperty("sortingOrderWithinRowGroup");
+                    var identifier_category = typeof(T).GetProperty("identifier_category");
+                    var sortingOrder = typeof(T).GetProperty("sortingOrder");
+                    var relatedItemTemplateIdentifier = typeof(T).GetProperty("relatedItemTemplateIdentifier");
+                    var output_data = typeof(T).GetProperty("output_data");
+                    dumpEntry("  ", "\"{0}\": [", label);
+                    var keys = dict.Keys;
+                    int index = 0;
+                    foreach(var key in keys)
+                    {
+                        var value = dict[key];
+                        dumpEntry("    ", "{{");
+                        dumpEntry("      ", "\"id\": {0},", key);
+                        dumpEntry("      ", "\"name\": \"{0}\",", (string)name.GetValue(value));
+                        if(stackSize != null) dumpEntry("      ", "\"stackSize\": {0},", (uint)stackSize.GetValue(value));
+                        if(icon_identifier != null) dumpEntry("", "      \"icon\": \"{0}\",", (string)icon_identifier.GetValue(value));
+                        if(relatedItemTemplateIdentifier != null || output_data != null)
+                        {
+                            if(relatedItemTemplateIdentifier != null && !((string)relatedItemTemplateIdentifier.GetValue(value)).IsNullOrWhiteSpace())
+                            {
+                                dumpEntry("", "      \"item_identifier\": \"{0}\",", (string)relatedItemTemplateIdentifier.GetValue(value));
+                            }
+                            else
+                            {
+                                var outputs = (UnhollowerBaseLib.Il2CppReferenceArray<CraftingRecipe.CraftingRecipeItemInput>)output_data.GetValue(value);
+                                if(outputs != null && outputs.Count > 0)
+                                {
+                                    dumpEntry("", "      \"item_identifier\": \"{0}\",", (string)outputs[0].identifier);
+                                }
+                            }
+                        }
+                        if(category_identifier != null) dumpEntry("", "      \"category_identifier\": \"{0}\",", (string)category_identifier.GetValue(value));
+                        if(identifier_category != null) dumpEntry("", "      \"identifier_category\": \"{0}\",", (string)identifier_category.GetValue(value));
+                        if(rowGroup_identifier != null) dumpEntry("", "      \"rowGroup_identifier\": \"{0}\",", (string)rowGroup_identifier.GetValue(value));
+                        if(sortingOrderWithinRowGroup != null) dumpEntry("", "      \"sortingOrderWithinRowGroup\": {0},", (int)sortingOrderWithinRowGroup.GetValue(value));
+                        if(sortingOrder != null) dumpEntry("", "      \"sortingOrder\": {0},", (int)sortingOrder.GetValue(value));
+                        dumpEntry("      ", "\"identifier\": \"{0}\"", (string)identifier.GetValue(value));
+                        dumpEntry("    ", (index == keys.Count - 1) ? "}}" : "}},");
+                        ++index;
+                    }
+                    dumpEntry("  ", last ? "]" : "],");
+                }
+                dumpDictionary<ItemTemplate>("items", ItemTemplateManager.dict_itemTemplates);
+                dumpDictionary<ElementTemplate>("elements", ItemTemplateManager.dict_elementTemplates);
+                dumpDictionary<CraftingRecipe>("recipes", ItemTemplateManager.dict_craftingRecipes);
+                dumpDictionary<BuildableObjectTemplate>("buildings", ItemTemplateManager.dict_buildableObjectTemplates);
+                dumpDictionary<TerrainBlockType>("terrain", ItemTemplateManager.dict_terrainBlockTemplates);
+                dumpDictionary<CraftingRecipeCategory>("recipe_categories", ItemTemplateManager.dict_craftingRecipeCategories);
+                dumpDictionary<CraftingRecipeRowGroup>("recipe_row_groups", ItemTemplateManager.dict_craftingRecipeRowGroups, true);
+                dumpEntry("", "}}");
+                f.Close();
+                ChatFrame.addMessage(PoMgr._po("Data saved to BepInEx\\plugins\\{0}\\idmap.json", MODNAME));
+            }),
+            new CommandHandler(@"^\/tweakItems\s+([\w\-.]+)(?:\s+(\w+)=((?:\""[^\""]*\"")|(?:[0-9]*(?:\.[0-9]*)?)))+$", (string[] arguments) => {
+                log.LogMessage(string.Join(", ", arguments));
+                var regexNumber = new Regex(@"[0-9]*(?:\.[0-9]*)?", RegexOptions.Singleline);
+                var targetPath = $"{arguments[0]}.json";
+                var tweakCount = (arguments.Length - 1)/2;
+                var tweakProperties = new string[tweakCount];
+                var tweakValues = new string[tweakCount];
+                for(int i = 0; i < tweakCount; ++i)
+                {
+                    tweakProperties[i] = arguments[i*2+1];
+                    tweakValues[i] = arguments[i*2+2];
+                }
+
+                if (!Directory.Exists(dumpFolder)) Directory.CreateDirectory(dumpFolder);
+                var f = new StreamWriter(Path.Combine(dumpFolder, targetPath), false);
+                void dumpEntry(string indent, string entry, params object[] args)
+                {
+                    f.WriteLine(indent+entry, args);
+                }
+                dumpEntry("", "{{");
+                dumpEntry("  ", "\"changes\": {{");
+                void dumpDictionary<T>(string label, Il2CppSystem.Collections.Generic.Dictionary<ulong, T> dict, bool last = false)
+                {
+                    var identifier = typeof(T).GetProperty("identifier");
+                    dumpEntry("    ", "\"{0}\": {{", label);
+                    var keys = dict.Keys;
+                    int index = 0;
+                    foreach(var key in keys)
+                    {
+                        var value = dict[key];
+                        dumpEntry("      ", "\"{0}\": {{", (string)identifier.GetValue(value));
+                        for(int i = 0; i < tweakCount; ++i)
+                        {
+                            if(regexNumber.IsMatch(tweakValues[i]))
+                            {
+                                dumpEntry("        ", "\"{0}\": {1}{2}", tweakProperties[i], tweakValues[i], (i < tweakCount - 1) ? "," : "");
+                            }
+                            else
+                            {
+                                dumpEntry("        ", "\"{0}\": \"{1}\"{2}", tweakProperties[i], tweakValues[i].Replace("\"", "\\\""), (i < tweakCount - 1) ? "," : "");
+                            }
+                        }
+                        dumpEntry("      ", (index == keys.Count - 1) ? "}}" : "}},");
+                        ++index;
+                    }
+                    dumpEntry("    ", last ? "}}" : "}},");
+                }
+                dumpDictionary<ItemTemplate>("items", ItemTemplateManager.dict_itemTemplates, last: true);
+                dumpEntry("  ", "}}");
+                dumpEntry("", "}}");
+                f.Close();
+                ChatFrame.addMessage(PoMgr._po("Data saved to BepInEx\\plugins\\{0}\\{1}", MODNAME, targetPath));
             })
         };
     }

@@ -99,5 +99,22 @@ namespace FoundryCommands
 
             return true;
         }
+
+        public static void onClickInteractableObject(InteractableObject __instance)
+        {
+            FoundryCommandsLoader.log.LogMessage(string.Format("{0} {1} {2}", __instance.relatedEntityId, __instance.interactableObjectIdx, keyStates[(int)KeyType.Sprint]));
+            if (keyStates[(int)KeyType.Sprint])
+            {
+                var character = GameRoot.getClientCharacter();
+                if (character == null)
+                {
+                    FoundryCommandsLoader.log.LogError("<b>ERROR:</b> Client character not found!");
+                    return;
+                }
+
+                GameRoot.addLockstepEvent(new BuildableObjectInteraction(character.usernameHash, __instance.relatedEntityId, __instance.interactableObjectIdx));
+                GameRoot.addLockstepEvent(new BuildableObjectInteraction(character.usernameHash, __instance.relatedEntityId, __instance.interactableObjectIdx));
+            }
+        }
     }
 }
