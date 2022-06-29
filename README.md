@@ -40,6 +40,16 @@ All commands are case insensitve.
 - **/flySpeed** _horizontal_ _vertical_  
    Sets horizontal and vertical flight speed.
 
+- **/dumpData**  
+   Dump data for use with Foundry Save Editor.  Saves to BepInEx\\plugins\\FoundryCommands\\idmap.json  
+
+- **/dumpData minify**  
+   Same as above but leaving out extra whitespaces.  
+
+- **/tweakItems** _tweak-name_ _identifier_=_value_...  
+   Generate a tweak file for use with [Tweakificator](https://github.com/erkle64/Tweakificator).  Saves to BepInEx\\plugins\\FoundryCommands\\_tweak-name_.json  
+   Example: `/tweakItems Stack2000 stackSize=2000`
+
 #### Compatibility
 
 Probably only works in single player.
