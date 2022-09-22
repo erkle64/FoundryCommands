@@ -20,7 +20,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = "com." + AUTHOR + "." + MODNAME,
-            VERSION = "1.3.0";
+            VERSION = "1.3.2";
 
         public static BepInEx.Logging.ManualLogSource log;
 
@@ -92,11 +92,11 @@ namespace FoundryCommands
 
                 applyPatch<ChatFrame>("onReturnCB", prefix: "processChatEvent");
                 applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
-                applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
+                //applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
                 applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
                 applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
                 applyPatch<InteractableObject>("onClick", prefix: "onClickInteractableObject");
-
+                
                 var original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
                 var post = AccessTools.Method(typeof(PluginComponent), "characterIsGrounded");
                 harmony.Patch(original, postfix: new HarmonyMethod(post));
