@@ -16,6 +16,8 @@ namespace FoundryCommands
         private static float lastJumpTime = 0.0f;
         private static bool[] keyStates = new bool[6] { false, false, false, false, false, false };
 
+        private static RenderCharacter renderCharacter = null;
+
         public enum KeyType
         {
             Forward,
@@ -36,7 +38,6 @@ namespace FoundryCommands
             if (isFlying)
             {
                 motion.y = keyStates[(int)KeyType.Jump] ? flightSpeedVertical * Time.fixedDeltaTime : keyStates[(int)KeyType.Sprint] ? -flightSpeedVertical * Time.fixedDeltaTime : 0.0f;
-                
                 motion.x = motion.x * flightSpeedScale;
                 motion.z = motion.z * flightSpeedScale;
                 var motionXZ = new Vector2(motion.x, motion.z)/Time.fixedDeltaTime;
@@ -65,6 +66,10 @@ namespace FoundryCommands
         [HarmonyPrefix]
         public static void initInputRelay(ref bool isKeyDown, int inputKeyType, Character relatedCharacter)
         {
+            if (inputKeyType >= keyStates.Length) return;
+
+            if (relatedCharacter != null && renderCharacter == null) renderCharacter = relatedCharacter.renderCharacter;
+
             if(relatedCharacter != null && relatedCharacter.sessionOnly_isClientCharacter && keyStates[inputKeyType] != isKeyDown)
             {
                 keyStates[inputKeyType] = isKeyDown;

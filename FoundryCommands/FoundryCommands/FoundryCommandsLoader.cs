@@ -92,7 +92,7 @@ namespace FoundryCommands
 
                 applyPatch<ChatFrame>("onReturnCB", prefix: "processChatEvent");
                 applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
-                //applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
+                applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
                 applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
                 applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
                 applyPatch<InteractableObject>("onClick", prefix: "onClickInteractableObject");
@@ -267,11 +267,6 @@ namespace FoundryCommands
                     //GameRoot.addLockstepEvent(new DebugItemSpawnEvent(character, item.id));
                 }
 
-                ChatFrame.addMessage(PoMgr._po("arguments.Length: {0}", arguments.Length.ToString()));
-                for(int i = 0; i < arguments.Length; ++i)
-                {
-                    ChatFrame.addMessage(PoMgr._po("arguments[{0}] = '{1}'", i.ToString(), arguments[i]));
-                }
                 uint count = 0;
                 switch(arguments.Length)
                 {
