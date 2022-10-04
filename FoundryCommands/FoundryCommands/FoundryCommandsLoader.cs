@@ -20,7 +20,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = "com." + AUTHOR + "." + MODNAME,
-            VERSION = "1.3.2";
+            VERSION = "1.3.3";
 
         public static BepInEx.Logging.ManualLogSource log;
 
@@ -91,15 +91,14 @@ namespace FoundryCommands
                 }
 
                 applyPatch<ChatFrame>("onReturnCB", prefix: "processChatEvent");
-                applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
-                //applyPatch<UnityEngine.CharacterController>("isGrounded", postfix: "characterIsGrounded");
-                applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
-                applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
+                //applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
+                //applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
+                //applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
                 applyPatch<InteractableObject>("onClick", prefix: "onClickInteractableObject");
                 
-                var original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
-                var post = AccessTools.Method(typeof(PluginComponent), "characterIsGrounded");
-                harmony.Patch(original, postfix: new HarmonyMethod(post));
+                //var original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
+                //var post = AccessTools.Method(typeof(PluginComponent), "characterIsGrounded");
+                //harmony.Patch(original, postfix: new HarmonyMethod(post));
             }
             catch
             {
@@ -280,7 +279,7 @@ namespace FoundryCommands
                                 GiveItem(item, count);
                                 break;
                             }
-                            else if(item.identifier.Contains(name) || item.name.Contains(name))
+                            else if(item.identifier.ToLower().Contains(name) || item.name.ToLower().Contains(name))
                             {
                                 foundItems.Add(item);
                             }

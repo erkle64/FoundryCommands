@@ -14,7 +14,7 @@ namespace FoundryCommands
         public static float flightJumpInterval = 0.5f;
 
         private static float lastJumpTime = 0.0f;
-        private static bool[] keyStates = new bool[6] { false, false, false, false, false, false };
+        private static bool[] keyStates = new bool[7] { false, false, false, false, false, false, false };
 
         private static RenderCharacter renderCharacter = null;
 
@@ -25,28 +25,30 @@ namespace FoundryCommands
             Right,
             Left,
             Jump,
-            Sprint
+            Sprint,
+            Crouch
         }
 
         public PluginComponent (IntPtr ptr) : base(ptr)
         {
         }
 
-        [HarmonyPrefix]
-        public static void characterMove(UnityEngine.CharacterController __instance, ref Vector3 motion)
+        /*[HarmonyPrefix]
+        public static void characterMove(UnityEngine.CharacterController __instance, ref Vector3 speed)
         {
+            FoundryCommandsLoader.log.LogInfo(string.Format("characterMove: {0}", speed.ToString()));
             if (isFlying)
             {
-                motion.y = keyStates[(int)KeyType.Jump] ? flightSpeedVertical * Time.fixedDeltaTime : keyStates[(int)KeyType.Sprint] ? -flightSpeedVertical * Time.fixedDeltaTime : 0.0f;
-                motion.x = motion.x * flightSpeedScale;
-                motion.z = motion.z * flightSpeedScale;
-                var motionXZ = new Vector2(motion.x, motion.z)/Time.fixedDeltaTime;
+                speed.y = keyStates[(int)KeyType.Jump] ? flightSpeedVertical * Time.fixedDeltaTime : keyStates[(int)KeyType.Crouch] ? -flightSpeedVertical * Time.fixedDeltaTime : 0.0f;
+                speed.x = speed.x * flightSpeedScale;
+                speed.z = speed.z * flightSpeedScale;
+                var motionXZ = new Vector2(speed.x, speed.z)/Time.fixedDeltaTime;
                 var mag = motionXZ.magnitude;
                 if (mag > flightSpeedScale*FoundryCommandsLoader.walkingSpeed)
                 {
                     motionXZ = motionXZ.normalized * (flightSpeedScale * FoundryCommandsLoader.walkingSpeed * Time.deltaTime);
-                    motion.x = motionXZ.x;
-                    motion.z = motionXZ.y;
+                    speed.x = motionXZ.x;
+                    speed.z = motionXZ.y;
                 }
             }
         }
@@ -54,6 +56,7 @@ namespace FoundryCommands
         [HarmonyPostfix]
         public static void characterIsGrounded(ref bool __result)
         {
+            FoundryCommandsLoader.log.LogInfo("characterIsGrounded");
             if (isFlying) __result = true;
         }
 
@@ -66,7 +69,11 @@ namespace FoundryCommands
         [HarmonyPrefix]
         public static void initInputRelay(ref bool isKeyDown, int inputKeyType, Character relatedCharacter)
         {
-            if (inputKeyType >= keyStates.Length) return;
+            if (inputKeyType >= keyStates.Length)
+            {
+                FoundryCommandsLoader.log.LogInfo(string.Format("inputKeyType outside of known key states: {0} >= {1}", inputKeyType, keyStates.Length));
+                return;
+            }
 
             if (relatedCharacter != null && renderCharacter == null) renderCharacter = relatedCharacter.renderCharacter;
 
@@ -86,7 +93,7 @@ namespace FoundryCommands
                 }
             }
             //FoundryCommandsLoader.log.LogMessage(string.Format("initInputRelay {0} {1} {2}", isKeyDown, inputKeyType, (relatedCharacter != null) ? relatedCharacter.username : "<nobody>"));
-        }
+        }*/
 
         [HarmonyPrefix]
         public static bool processChatEvent()
@@ -107,7 +114,7 @@ namespace FoundryCommands
 
         public static void onClickInteractableObject(InteractableObject __instance)
         {
-            FoundryCommandsLoader.log.LogMessage(string.Format("{0} {1} {2}", __instance.relatedEntityId, __instance.interactableObjectIdx, keyStates[(int)KeyType.Sprint]));
+            //FoundryCommandsLoader.log.LogMessage(string.Format("{0} {1} {2}", __instance.relatedEntityId, __instance.interactableObjectIdx, keyStates[(int)KeyType.Sprint]));
             if (keyStates[(int)KeyType.Sprint])
             {
                 var character = GameRoot.getClientCharacter();
