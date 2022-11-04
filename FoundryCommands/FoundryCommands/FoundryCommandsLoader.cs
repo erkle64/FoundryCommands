@@ -1,15 +1,16 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-using UnhollowerRuntimeLib;
 using HarmonyLib;
 using UnityEngine;
-using Object = UnityEngine.Object;
 using System.Collections.Generic;
 using System.Threading;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
+using UnityEngine.UI;
+using TMPro;
+using UnhollowerRuntimeLib;
 
 namespace FoundryCommands
 {
@@ -20,17 +21,21 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = "com." + AUTHOR + "." + MODNAME,
-            VERSION = "1.3.3";
+            VERSION = "1.4.0";
 
         public static BepInEx.Logging.ManualLogSource log;
 
-        public static ConfigEntry<float> config_flight_speed;
-        public static ConfigEntry<float> config_flight_verticalSpeed;
-        public static ConfigEntry<float> config_flight_jumpInterval;
-        public const float walkingSpeed = 6.0f;
+        public static ConfigEntry<bool> config_jetpackForceUnlocked;
+        //public static ConfigEntry<float> config_flight_speed;
+        //public static ConfigEntry<float> config_flight_verticalSpeed;
+        //public static ConfigEntry<float> config_flight_jumpInterval;
+        //public const float walkingSpeed = 6.0f;
 
         public static string assemblyFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         public static string dumpFolder = Path.Combine(assemblyFolder, MODNAME);
+
+        //public static Hook hook_CharacterJetpack_handleJetpack = null;
+        //public delegate bool orig_handleJetpack(CharacterJetpack self, float lastJumpTime, InputProxy inputProxy, ref Vector3 moveDirection);
 
         public FoundryCommandsLoader()
         {
@@ -41,64 +46,59 @@ namespace FoundryCommands
         {
             log.LogMessage("Registering PluginComponent in Il2Cpp");
 
+            config_jetpackForceUnlocked = Config.Bind("Flight", "jetpackForceUnlocked", false, "Treat jetpack as unlocked and fueled.");
+
             //walkingSpeed = (float)AccessTools.Field(typeof(RenderCharacter), "SPEED_WALKING").GetValue(null);
-            config_flight_speed = Config.Bind("Flight", "speed", walkingSpeed * 4.0f, "Speed for horizontal flight in meters per second.");
-            config_flight_verticalSpeed = Config.Bind("Flight", "verticalSpeed", walkingSpeed, "Speed for vertical flight in meters per second.");
-            config_flight_jumpInterval = Config.Bind("Flight", "jumpInterval", 0.5f, "Maximum time for double tapping jump to toggle flight.");
+            //config_flight_speed = Config.Bind("Flight", "speed", walkingSpeed * 4.0f, "Speed for horizontal flight in meters per second.");
+            //config_flight_verticalSpeed = Config.Bind("Flight", "verticalSpeed", walkingSpeed, "Speed for vertical flight in meters per second.");
+            //config_flight_jumpInterval = Config.Bind("Flight", "jumpInterval", 0.5f, "Maximum time for double tapping jump to toggle flight.");
 
-            PluginComponent.flightSpeedScale = config_flight_speed.Value/walkingSpeed;
-            PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
-            PluginComponent.flightJumpInterval = config_flight_jumpInterval.Value;
+            //PluginComponent.flightSpeedScale = config_flight_speed.Value/walkingSpeed;
+            //PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
+            //PluginComponent.flightJumpInterval = config_flight_jumpInterval.Value;
 
-            try
-            {
-                ClassInjector.RegisterTypeInIl2Cpp<PluginComponent>();
-
-                var go = new GameObject("Erkle64_FoundryCommands_PluginObject");
-                go.AddComponent<PluginComponent>();
-                Object.DontDestroyOnLoad(go);
-            }
-            catch
-            {
-                log.LogError("FAILED to Register Il2Cpp Type: PluginComponent!");
-            }
+            RegisterDumper("spriteTexture", (Image component) => { return (component.sprite == null) ? "null" : (component.sprite.texture == null) ? "null" : component.sprite.texture.name; });
+            RegisterDumper("spriteBorder", (Image component) => { return (component.sprite == null) ? "null" : component.sprite.border.ToString(); });
+            RegisterDumper("imageType", (Image component) => { return component.type.ToString(); });
+            RegisterDumper("color", (Image component) => { return component.color.ToString(); });
+            RegisterDumper("minWidth", (LayoutElement component) => { return component.minWidth; });
+            RegisterDumper("minHeight", (LayoutElement component) => { return component.minHeight; });
+            RegisterDumper("preferredWidth", (LayoutElement component) => { return component.preferredWidth; });
+            RegisterDumper("preferredHeight", (LayoutElement component) => { return component.preferredHeight; });
+            RegisterDumper("flexibleWidth", (LayoutElement component) => { return component.flexibleWidth; });
+            RegisterDumper("flexibleHeight", (LayoutElement component) => { return component.flexibleHeight; });
+            RegisterDumper("text", (TextMeshProUGUI component) => { return component.text; });
+            RegisterDumper("textFont", (TextMeshProUGUI component) => { return component.font.name; });
+            RegisterDumper("textSize", (TextMeshProUGUI component) => { return component.fontSize; });
+            RegisterDumper("textColor", (TextMeshProUGUI component) => { return component.color.ToString(); });
+            RegisterDumper("textAlignment", (TextMeshProUGUI component) => { return component.alignment.ToString(); });
+            RegisterDumper("transition_type", (Button component) => { return component.transition.ToString(); });
+            RegisterDumper("transition_normalColor", (Button component) => { return component.colors.normalColor.ToString(); });
+            RegisterDumper("transition_highlightedColor", (Button component) => { return component.colors.highlightedColor.ToString(); });
+            RegisterDumper("transition_pressedColor", (Button component) => { return component.colors.pressedColor.ToString(); });
+            RegisterDumper("transition_selectedColor", (Button component) => { return component.colors.selectedColor.ToString(); });
+            RegisterDumper("transition_disabledColor", (Button component) => { return component.colors.disabledColor.ToString(); });
+            RegisterDumper("transition_colorMultiplier", (Button component) => { return component.colors.colorMultiplier.ToString(); });
+            RegisterDumper("transition_fadeDuration", (Button component) => { return component.colors.fadeDuration.ToString(); });
+            RegisterDumper("verticalLayout_padding", (VerticalLayoutGroup component) => { return component.padding.ToString(); });
+            RegisterDumper("verticalLayout_spacing", (VerticalLayoutGroup component) => { return component.spacing.ToString(); });
+            RegisterDumper("verticalLayout_childAlignment", (VerticalLayoutGroup component) => { return component.childAlignment.ToString(); });
+            RegisterDumper("verticalLayout_reverseArrangement", (VerticalLayoutGroup component) => { return component.reverseArrangement ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childControlWidth", (VerticalLayoutGroup component) => { return component.childControlWidth ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childControlHeight", (VerticalLayoutGroup component) => { return component.childControlHeight ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childForceExpandWidth", (VerticalLayoutGroup component) => { return component.childForceExpandWidth ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childForceExpandHeight", (VerticalLayoutGroup component) => { return component.childForceExpandHeight ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childScaleWidth", (VerticalLayoutGroup component) => { return component.childScaleWidth ? "true" : "false"; });
+            RegisterDumper("verticalLayout_childScaleHeight", (VerticalLayoutGroup component) => { return component.childScaleHeight ? "true" : "false"; });
+            RegisterDumper("horizontalFit", (ContentSizeFitter component) => { return component.horizontalFit.ToString(); });
+            RegisterDumper("verticalFit", (ContentSizeFitter component) => { return component.verticalFit.ToString(); });
 
             try
             {
                 var harmony = new Harmony(GUID);
+                harmony.PatchAll(typeof(Patch));
 
-                void applyPatch<O>(string _original, string prefix = "", string postfix = "")
-                {
-                    var originalMethod = AccessTools.Method(typeof(O), _original);
-                    if (prefix.Length > 0)
-                    {
-                        var prefixMethod = AccessTools.Method(typeof(PluginComponent), prefix);
-                        if (postfix.Length > 0)
-                        {
-                            var postfixMethod = AccessTools.Method(typeof(PluginComponent), postfix);
-                            harmony.Patch(originalMethod, prefix: new HarmonyMethod(prefixMethod), postfix: new HarmonyMethod(postfixMethod));
-                        }
-                        else
-                        {
-                            harmony.Patch(originalMethod, prefix: new HarmonyMethod(prefixMethod));
-                        }
-                    }
-                    else if (postfix.Length > 0)
-                    {
-                        var postfixMethod = AccessTools.Method(typeof(PluginComponent), postfix);
-                        harmony.Patch(originalMethod, postfix: new HarmonyMethod(postfixMethod));
-                    }
-                }
-
-                applyPatch<ChatFrame>("onReturnCB", prefix: "processChatEvent");
-                //applyPatch<UnityEngine.CharacterController>("Move", prefix: "characterMove");
-                //applyPatch<RenderCharacter>("getMovementSoundPackBasedOnPosition", postfix: "getMovementSoundPackBasedOnPosition");
-                //applyPatch<GameRoot>("initInputRelay", prefix: "initInputRelay");
-                applyPatch<InteractableObject>("onClick", prefix: "onClickInteractableObject");
-                
-                //var original = AccessTools.Property(typeof(UnityEngine.CharacterController), "isGrounded").GetGetMethod();
-                //var post = AccessTools.Method(typeof(PluginComponent), "characterIsGrounded");
-                //harmony.Patch(original, postfix: new HarmonyMethod(post));
+                harmony.Patch(typeof(ResearchSystem).GetProperty("jetpackIsUnlocked").GetGetMethod(), postfix: new HarmonyMethod(typeof(Patch).GetMethod("ResearchSystem_jetpackIsUnlocked")));
             }
             catch
             {
@@ -182,29 +182,54 @@ namespace FoundryCommands
                         return;
                 }
             }),
-            new CommandHandler(@"^\/fly$", (string[] arguments) => {
-                PluginComponent.isFlying = !PluginComponent.isFlying;
-            }),
-            new CommandHandler(@"^\/flySpeed\s*?(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?))?\s*)?$", (string[] arguments) => {
-                switch(arguments.Length)
+            new CommandHandler(@"^\/jet", (string[] arguments) => {
+                if (config_jetpackForceUnlocked.Value)
                 {
-                    case 1:
-                        config_flight_speed.Value = float.Parse(arguments[0]);
-                        PluginComponent.flightSpeedScale = config_flight_speed.Value/walkingSpeed;
-                        PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
-                        break;
-                    case 2:
-                        config_flight_verticalSpeed.Value = float.Parse(arguments[1]);
-                        PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
-                        goto case 1;
-                    default:
-                        ChatFrame.addMessage(PoMgr._po("Usage: <b>/flySpeed</b> <i>speed</i> <i>vertical-speed</i>"));
-                        ChatFrame.addMessage(PoMgr._po("Current flight speed is {0}m/s horizontal and {1}m/s vertical.", config_flight_speed.Value.ToString(), config_flight_verticalSpeed.Value.ToString()));
-                        return;
-                }
+                    ChatFrame.addMessage(PoMgr._po("Disabling infinite jetpack mode."));
 
-                ChatFrame.addMessage(PoMgr._po("Set flight speed to {0}m/s horizontal and {1}m/s vertical.", config_flight_speed.Value.ToString(), config_flight_verticalSpeed.Value.ToString()));
+                    config_jetpackForceUnlocked.Value = false;
+
+                    var template = ItemTemplateManager.getResearchTemplateById(ResearchTemplate.generateStringHash("_base_jetpack"));
+                    if (template != null)
+                    {
+                        if (!ResearchSystem.isFinished(template, -1)) ResearchSystem.singleton.jetpackIsUnlocked = false;
+                    }
+                    else
+                    {
+                        ChatFrame.addMessage(PoMgr._po("<color=red>Failed to find jetpack research item.</color>"));
+                    }
+                }
+                else
+                {
+                    ChatFrame.addMessage(PoMgr._po("Enabling infinite jetpack mode."));
+
+                    config_jetpackForceUnlocked.Value = true;
+                    ResearchSystem.singleton.jetpackIsUnlocked = true;
+                }
             }),
+            //new CommandHandler(@"^\/fly$", (string[] arguments) => {
+            //    PluginComponent.isFlying = !PluginComponent.isFlying;
+            //}),
+            //new CommandHandler(@"^\/flySpeed\s*?(?:\s+(\d+(?:\.\d*)?)(?:\s+(\d+(?:\.\d*)?))?\s*)?$", (string[] arguments) => {
+            //    switch(arguments.Length)
+            //    {
+            //        case 1:
+            //            config_flight_speed.Value = float.Parse(arguments[0]);
+            //            PluginComponent.flightSpeedScale = config_flight_speed.Value/walkingSpeed;
+            //            PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
+            //            break;
+            //        case 2:
+            //            config_flight_verticalSpeed.Value = float.Parse(arguments[1]);
+            //            PluginComponent.flightSpeedVertical = config_flight_verticalSpeed.Value;
+            //            goto case 1;
+            //        default:
+            //            ChatFrame.addMessage(PoMgr._po("Usage: <b>/flySpeed</b> <i>speed</i> <i>vertical-speed</i>"));
+            //            ChatFrame.addMessage(PoMgr._po("Current flight speed is {0}m/s horizontal and {1}m/s vertical.", config_flight_speed.Value.ToString(), config_flight_verticalSpeed.Value.ToString()));
+            //            return;
+            //    }
+
+            //    ChatFrame.addMessage(PoMgr._po("Set flight speed to {0}m/s horizontal and {1}m/s vertical.", config_flight_speed.Value.ToString(), config_flight_verticalSpeed.Value.ToString()));
+            //}),
             new CommandHandler(@"^\/tp(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
                 if (arguments.Length == 0 && arguments[0].Length == 0)
                 {
@@ -431,7 +456,200 @@ namespace FoundryCommands
                 dumpEntry("", "}}");
                 f.Close();
                 ChatFrame.addMessage(PoMgr._po("Data saved to BepInEx\\plugins\\{0}\\{1}", MODNAME, targetPath));
+            }),
+            new CommandHandler(@"^\/dumpGO(?:\s+([\w\/]+))?$", (string[] arguments) => {
+                log.LogInfo(string.Join(", ", arguments));
+                var targetPath = "GameObject.json";
+
+                if (arguments.Length < 1)
+                {
+                    ChatFrame.addMessage(PoMgr._po("Usage: <b>/dumpGO</b> <i>name/path</i>"));
+                    return;
+                }
+
+                var go = GameObject.Find(arguments[0]);
+                if (go == null)
+                {
+                    ChatFrame.addMessage(PoMgr._po("<b>ERROR:</b> Game object not found!"));
+                    return;
+                }
+
+                var dump = new DumpGO(go);
+                var json = JsonConvert.SerializeObject(dump, Formatting.Indented);
+                File.WriteAllText(Path.Combine(dumpFolder, targetPath), json);
+
+                ChatFrame.addMessage(PoMgr._po("Data saved to BepInEx\\plugins\\{0}\\{1}", MODNAME, targetPath));
             })
         };
+
+
+        private delegate object DumperDg<A>(A argument);
+        private static Dictionary<string, Dictionary<string, DumperDg<MonoBehaviour>>> componentDumpers = new Dictionary<string, Dictionary<string, DumperDg<MonoBehaviour>>>();
+        private static void RegisterDumper<T>(string name, DumperDg<T> dumper) where T : MonoBehaviour
+        {
+            var typeName = UnhollowerRuntimeLib.Il2CppType.Of<T>().FullName;
+            Dictionary<string, DumperDg<MonoBehaviour>> typeDumpers;
+            if(!componentDumpers.TryGetValue(typeName, out typeDumpers))
+            {
+                componentDumpers[typeName] = typeDumpers = new Dictionary<string, DumperDg<MonoBehaviour>>();
+            }
+
+            typeDumpers[name] = (MonoBehaviour component) =>
+            {
+                return dumper.Invoke(component.Cast<T>());
+            };
+        }
+
+
+        private class DumpGO
+        {
+            public string name;
+            public float offsetMinX;
+            public float offsetMinY;
+            public float offsetMaxX;
+            public float offsetMaxY;
+            public float pivotX;
+            public float pivotY;
+            public float anchorMinX;
+            public float anchorMinY;
+            public float anchorMaxX;
+            public float anchorMaxY;
+            public DumpMB[] components;
+            public DumpGO[] children;
+
+            public DumpGO(GameObject go)
+            {
+                name = go.name;
+
+                var transform = go.transform.Cast<RectTransform>();
+                offsetMinX = transform.offsetMin.x;
+                offsetMinY = transform.offsetMin.y;
+                offsetMaxX = transform.offsetMax.x;
+                offsetMaxY = transform.offsetMax.y;
+                pivotX = transform.pivot.x;
+                pivotY = transform.pivot.y;
+                anchorMinX = transform.anchorMin.x;
+                anchorMinY = transform.anchorMin.y;
+                anchorMaxX = transform.anchorMax.x;
+                anchorMaxY = transform.anchorMax.y;
+
+                var components = go.GetComponents<MonoBehaviour>();
+                this.components = new DumpMB[components.Length];
+                for(int i = 0; i < components.Length; i++) this.components[i] = new DumpMB(components[i]);
+
+                var childCount = go.transform.GetChildCount();
+                children = new DumpGO[childCount];
+                for (int i = 0; i < childCount; ++i) children[i] = new DumpGO(go.transform.GetChild(i).gameObject);
+            }
+        }
+
+
+        private class DumpMB
+        {
+            public string typeName;
+            public Dictionary<string, object> values = new Dictionary<string, object>();
+
+            public DumpMB(MonoBehaviour component)
+            {
+                typeName = component.GetIl2CppType().FullName;
+
+                Dictionary<string, DumperDg<MonoBehaviour>> typeDumpers;
+                if (componentDumpers.TryGetValue(typeName, out typeDumpers))
+                {
+                    foreach(var kv in typeDumpers)
+                    {
+                        values[kv.Key] = kv.Value.Invoke(component);
+                    }
+                }
+           }
+        }
+
+        [HarmonyPatch]
+        public static class Patch
+        {
+            [HarmonyPatch(typeof(Character.SaveSync_JetpackPreconsumedFuel), nameof(Character.SaveSync_JetpackPreconsumedFuel.processEvent))]
+            [HarmonyPrefix]
+            public static bool SaveSync_JetpackPreconsumedFuel_processEvent(Character.SaveSync_JetpackPreconsumedFuel __instance)
+            {
+                if (!config_jetpackForceUnlocked.Value) return true;
+
+                var character = CharacterManager.getByUsernameHash(__instance.characterHash);
+                if (character == null) return true;
+
+                character.saveSyncData.preConsumedFuel_kj = character.clientData.preConsumedFuel_kj = 25000.0f;
+
+                return false;
+            }
+
+            [HarmonyPatch(typeof(Character.ConsumeFuelForJetpackEvent), nameof(Character.ConsumeFuelForJetpackEvent.processEvent))]
+            [HarmonyPrefix]
+            public static bool ConsumeFuelForJetpackEvent_processEvent(Character.ConsumeFuelForJetpackEvent __instance)
+            {
+                if (!config_jetpackForceUnlocked.Value) return true;
+
+                var character = CharacterManager.getByUsernameHash(__instance.characterHash);
+                if (character == null) return true;
+
+                character.clientData.preConsumedFuel_kj = 25000.0f;
+
+                return false;
+            }
+
+            [HarmonyPatch(typeof(ResearchSystem), nameof(ResearchSystem.Init))]
+            [HarmonyPostfix]
+            public static void ResearchSystem_Init(ResearchSystem __instance)
+            {
+                log.LogInfo("============================================================= ResearchSystem_Init");
+                if (!config_jetpackForceUnlocked.Value) return;
+
+                ResearchSystem.singleton.jetpackIsUnlocked = true;
+            }
+
+            [HarmonyPatch(typeof(ChatFrame), nameof(ChatFrame.onReturnCB))]
+            [HarmonyPrefix]
+            public static bool ChatFrame_onReturnCB()
+            {
+                var message = ChatFrame.getMessage();
+
+                foreach (var handler in commandHandlers)
+                {
+                    if (handler.TryProcessCommand(message))
+                    {
+                        ChatFrame.hideMessageBox();
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            [HarmonyPatch(typeof(InteractableObject), nameof(InteractableObject.onClick))]
+            [HarmonyPrefix]
+            public static bool InteractableObject_onClick(InteractableObject __instance)
+            {
+                if (GameRoot.getClientRenderCharacter().inputProxy.isKeyPressed[(int)InputProxy.eKey.SPRINT] == 0) return true;
+
+                var bogo = StreamingSystem.getBuildableObjectGOByEntityId(__instance.relatedEntityId);
+                if (bogo == null || bogo.template == null || bogo.template.type != BuildableObjectTemplate.BuildableObjectType.ConveyorBalancer) return true;
+
+                var balancer = bogo.Cast<ConveyorBalancerGO>();
+                var leverState = __instance.interactableObjectIdx == 0 ? balancer.getInputPriority() : balancer.getOutputPriority();
+                int pulseCount = 2 + leverState / 2;
+
+                var character = GameRoot.getClientCharacter();
+                if (character == null)
+                {
+                    log.LogError("<b>ERROR:</b> Client character not found!");
+                    return true;
+                }
+
+                for (int i = 0; i < pulseCount; i++)
+                {
+                    GameRoot.addLockstepEvent(new BuildableObjectInteraction(character.usernameHash, __instance.relatedEntityId, __instance.interactableObjectIdx));
+                }
+
+                return false;
+            }
+        }
     }
 }
