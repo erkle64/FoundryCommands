@@ -28,17 +28,8 @@ All commands are case insensitve.
 - **/give** _item_ _amount_  
    Spawn multiple items into your inventory.
 
-- **/fly**  
-   Toggle flight mode.  Double tapping jump does the same.
-
-- **/flySpeed**  
-   Display current flight speed.
-
-- **/flySpeed** _horizontal_  
-   Sets horizontal flight speed.
-
-- **/flySpeed** _horizontal_ _vertical_  
-   Sets horizontal and vertical flight speed.
+- **/jet**  
+   Toggle infinite jetpack mode.  It lets you use the jetpack without the research and gives infinite fuel.  It doesn't unlock the research.
 
 - **/dumpData**  
    Dump data for use with Foundry Save Editor.  Saves to BepInEx\\plugins\\FoundryCommands\\idmap.json  
