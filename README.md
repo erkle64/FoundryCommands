@@ -29,7 +29,7 @@ All commands are case insensitve.
    Spawn multiple items into your inventory.
 
 - **/count**  
-   Dump counts for all buildings within loading distance of the player.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\count.json`  
+   Dump counts for all buildings within loading distance of the player.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\count.txt`  
 
 - **/dumpData**  
    Dump data for use with Foundry Save Editor.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\idmap.json`  
