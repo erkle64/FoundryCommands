@@ -28,17 +28,17 @@ All commands are case insensitve.
 - **/give** _item_ _amount_  
    Spawn multiple items into your inventory.
 
-- **/jet**  
-   Toggle infinite jetpack mode.  It lets you use the jetpack without the research and gives infinite fuel.  It doesn't unlock the research.
+- **/count**  
+   Dump counts for all buildings within loading distance of the player.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\count.json`  
 
 - **/dumpData**  
-   Dump data for use with Foundry Save Editor.  Saves to BepInEx\\plugins\\FoundryCommands\\idmap.json  
+   Dump data for use with Foundry Save Editor.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\idmap.json`  
 
 - **/dumpData minify**  
    Same as above but leaving out extra whitespaces.  
 
 - **/tweakItems** _tweak-name_ _identifier_=_value_...  
-   Generate a tweak file for use with [Tweakificator](https://github.com/erkle64/Tweakificator).  Saves to BepInEx\\plugins\\FoundryCommands\\_tweak-name_.json  
+   Generate a tweak file for use with [Tweakificator](https://github.com/erkle64/Tweakificator).  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\_tweak-name_.json`  
    Example: `/tweakItems Stack2000 stackSize=2000`
 
 #### Compatibility
