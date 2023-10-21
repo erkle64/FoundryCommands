@@ -148,6 +148,8 @@ namespace FoundryCommands
                 ChatFrame.addMessage("Waypoint not found.");
             }),
             new CommandHandler(@"^\/count$", (string[] arguments) => {
+                if (!Directory.Exists(dumpFolder)) Directory.CreateDirectory(dumpFolder);
+
                 var buildings = StreamingSystem.getBuildableObjectTable();
                 var counts = new Dictionary<ItemTemplate, int>();
                 foreach(var building in buildings)
