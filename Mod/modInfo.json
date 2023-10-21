@@ -1,0 +1,9 @@
+{
+  "identifier": "erkle64.FoundryCommands",
+  "displayName": "FoundryCommands",
+  "assetBundles": [ ],
+  "assemblies": [
+    "FoundryCommands.dll"
+  ]
+}
+
