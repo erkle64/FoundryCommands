@@ -163,14 +163,14 @@ namespace FoundryCommands
                     }
                 }
 
-                var f = new StreamWriter(Path.Combine(dumpFolder, "count.json"), false);
+                var f = new StreamWriter(Path.Combine(dumpFolder, "count.txt"), false);
                 foreach (var kv in counts.OrderBy(x => x.Key.name))
                 {
                     f.WriteLine($"{kv.Key.name}: {kv.Value}");
                 }
                 f.Close();
 
-                ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.json");
+                ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt");
                 ChatFrame.addMessage($"Total: {buildings.Count}");
             }),
             new CommandHandler(@"^\/spawnOre(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
@@ -479,93 +479,25 @@ namespace FoundryCommands
             [HarmonyPrefix]
             public static bool ChatFrame_onReturnCB()
             {
-                var message = ChatFrame.getMessage();
-
-                foreach (var handler in commandHandlers)
+                try
                 {
-                    if (handler.TryProcessCommand(message))
+                    var message = ChatFrame.getMessage();
+
+                    foreach (var handler in commandHandlers)
                     {
-                        ChatFrame.hideMessageBox();
-                        return false;
+                        if (handler.TryProcessCommand(message))
+                        {
+                            ChatFrame.hideMessageBox();
+                            return false;
+                        }
                     }
+                }
+                catch (System.Exception e)
+                {
+                    ChatFrame.addMessage(e.ToString());
                 }
 
                 return true;
-            }
-
-            [HarmonyPatch(typeof(ItemTemplateManager), nameof(ItemTemplateManager.InitOnApplicationStart))]
-            [HarmonyPrefix]
-            public static void ItemTemplateManager_InitOnApplicationStart_Prefix()
-            {
-                Debug.Log("ItemTemplateManager.InitOnApplicationStart starting.");
-
-                var xenoOre = AssetManager.getAsset<TerrainBlockType>(TerrainBlockType.generateStringHash("_base_xenoferrite"));
-                xenoOre.oreSpawn_chancePerChunk_ground *= 10;
-                xenoOre.oreSpawn_chancePerChunk_surface *= 10;
-
-                var technumOre = AssetManager.getAsset<TerrainBlockType>(TerrainBlockType.generateStringHash("_base_technum"));
-                technumOre.oreSpawn_chancePerChunk_ground *= 10;
-                technumOre.oreSpawn_chancePerChunk_surface *= 10;
-
-                var igniumOre = AssetManager.getAsset<TerrainBlockType>(TerrainBlockType.generateStringHash("_base_ignium"));
-                igniumOre.oreSpawn_chancePerChunk_ground *= 10;
-                igniumOre.oreSpawn_chancePerChunk_surface *= 10;
-
-                var mineralOre = AssetManager.getAsset<TerrainBlockType>(TerrainBlockType.generateStringHash("_base_mineral_rock"));
-                mineralOre.oreSpawn_chancePerChunk_ground *= 10;
-                mineralOre.oreSpawn_chancePerChunk_surface *= 10;
-
-                var dirtBOT = AssetManager.getAsset<BuildableObjectTemplate>(BuildableObjectTemplate.generateStringHash("_base_terrain_dirt"));
-                Debug.Log("Found dirtBOT.");
-                var xenoBOT = ScriptableObject.Instantiate(dirtBOT);
-                xenoBOT.identifier = "_erkle_terrain_xeno";
-                xenoBOT.name = "Xenoferrite Ore";
-                xenoBOT.terrainBlock_tbtIdentifier = "_base_xenoferrite";
-
-                var dirtIT = AssetManager.getAsset<ItemTemplate>(ItemTemplate.generateStringHash("_base_dirt"));
-                Debug.Log("Found dirtIT.");
-                var xenoIT = ScriptableObject.Instantiate(dirtIT);
-                xenoIT.identifier = "_erkle_terrain_xeno";
-                xenoIT.name = "Xenoferrite Ore";
-                xenoIT.buildableObjectIdentifer = "_erkle_terrain_xeno";
-
-                AssetManager.registerAsset(xenoBOT, false);
-                AssetManager.registerAsset(xenoIT, false);
-            }
-
-            [HarmonyPatch(typeof(ItemTemplateManager), nameof(ItemTemplateManager.InitOnApplicationStart))]
-            [HarmonyPostfix]
-            public static void ItemTemplateManager_InitOnApplicationStart_Postfix()
-            {
-                Debug.Log("ItemTemplateManager.InitOnApplicationStart done.");
-            }
-
-            [HarmonyPatch(typeof(InteractableObject), nameof(InteractableObject.onClick))]
-            [HarmonyPrefix]
-            public static bool InteractableObject_onClick(InteractableObject __instance)
-            {
-                if (!GameRoot.getClientRenderCharacter().inputProxy.getKeyPressed(InputProxy.eKey.SPRINT)) return true;
-
-                var bogo = StreamingSystem.getBuildableObjectGOByEntityId(__instance.relatedEntityId);
-                if (bogo == null || bogo.template == null || bogo.template.type != BuildableObjectTemplate.BuildableObjectType.ConveyorBalancer) return true;
-
-                var balancer = (ConveyorBalancerGO)bogo;
-                var leverState = __instance.interactableObjectIdx == 0 ? balancer.getInputPriority() : balancer.getOutputPriority();
-                int pulseCount = 2 + leverState / 2;
-
-                var character = GameRoot.getClientCharacter();
-                if (character == null)
-                {
-                    Debug.LogError("<b>ERROR:</b> Client character not found!");
-                    return true;
-                }
-
-                for (int i = 0; i < pulseCount; i++)
-                {
-                    GameRoot.addLockstepEvent(new BuildableObjectInteraction(character.usernameHash, __instance.relatedEntityId, __instance.interactableObjectIdx));
-                }
-
-                return false;
             }
         }
     }
