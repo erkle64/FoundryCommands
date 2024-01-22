@@ -1,4 +1,4 @@
-using Channel3.ModKit;
+using C3.ModKit;
 using HarmonyLib;
 using System.Reflection;
 using Unfoundry;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Threading;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Channel3;
+using C3;
 using System.Linq;
 
 namespace FoundryCommands
@@ -19,7 +19,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "0.1.0";
+            VERSION = "1.6.0";
 
         public static LogSource log;
 
@@ -133,12 +133,12 @@ namespace FoundryCommands
                         var chunk = ChunkManager.getChunkByWorldCoords((int)wp.waypointPosition.x, (int)wp.waypointPosition.z);
                         if(chunk != null)
                         {
-                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0));
+                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0, false));
                             GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
                         }
                         else
                         {
-                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, "Ungenerated chunk.", 0));
+                            GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, "Ungenerated chunk.", 0, false));
                             ChunkManager.generateNewChunksBasedOnPosition(wp.waypointPosition, ChunkManager._getChunkLoadDistance());
                         }
                         return;
@@ -192,8 +192,8 @@ namespace FoundryCommands
                 void SpawnOreVein(TerrainBlockType terrainBlockType)
                 {
                     ChunkManager.convertWorldFloatCoordsToIntCoords(character.position, out var center);
-                    var oreVeinSpawningSystem = GameRoot.getSystem<OreVeinSpawningSystem>();
-                    if (GameRoot.getSystem<RaycastHelperSystem>().raycastFromCameraToTerrain(out Vector3 _, out var worldCellPos))
+                    var oreVeinSpawningSystem = GameRoot.World.Systems.Get<OreVeinSpawningSystem>();
+                    if (GameRoot.World.Systems.Get<RaycastHelperSystem>().raycastFromCameraToTerrain(out Vector3 _, out var worldCellPos))
                     {
                         center = worldCellPos;
                     }
@@ -295,7 +295,7 @@ namespace FoundryCommands
                         ChatFrame.addMessage("<b>ERROR:</b> Client character not found!");
                         return;
                     }
-                    GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", amount, item.name), 0));
+                    GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", amount, item.name), 0, false));
                     InventoryManager.inventoryManager_tryAddItemAtAnyPosition(character.inventoryId, item.id, amount, IOBool.iofalse);
                 }
 
@@ -494,7 +494,7 @@ namespace FoundryCommands
                         }
                     }
                 }
-                catch (System.Exception e)
+                catch(System.Exception e)
                 {
                     ChatFrame.addMessage(e.ToString());
                 }

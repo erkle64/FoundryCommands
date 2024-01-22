@@ -3,92 +3,27 @@
   <Import Project="$(SolutionDir)Foundry.props" Condition="Exists('$(SolutionDir)Foundry.props')" />
 
   <PropertyGroup>
-	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <TargetFramework>net45</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  
-  <PropertyGroup>
-    <TargetFrameworkMonikerAssemblyAttributesPath>$(SolutionDir)Attributes\AssemblyAttributes.cs</TargetFrameworkMonikerAssemblyAttributesPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="0Harmony, Version=2.2.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\0Harmony.dll</HintPath>
+    <Reference Include="0Harmony">
+      <HintPath>$(FoundryAssembliesPath)0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\Assembly-CSharp.dll</HintPath>
+    <Reference Include="Main">
+      <HintPath>$(FoundryAssembliesPath)Main.dll</HintPath>
     </Reference>
     <Reference Include="Channel3">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\Channel3.dll</HintPath>
-    </Reference>
-    <Reference Include="Main, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\Main.dll</HintPath>
-    </Reference>
-    <Reference Include="System">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\System.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Core">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\System.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\Unity.TextMeshPro.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.AudioModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+      <HintPath>$(FoundryAssembliesPath)Channel3.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.InputModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.InputModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.TextCoreFontEngineModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.TextCoreTextEngineModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.TextCoreTextEngineModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UIModule">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <HintPath>$(FoundryAssembliesPath)UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="Unfoundry">
-      <HintPath>G:\Games\Foundry\Mods\A_Unfoundry\Unfoundry.dll</HintPath>
-    </Reference>
-    <Reference Include="mscorlib">
-      <HintPath>G:\Games\Foundry\Foundry_Data\Managed\mscorlib.dll</HintPath>
+      <HintPath>$(FoundryModsPath)A_Unfoundry\Unfoundry.dll</HintPath>
     </Reference>
   </ItemGroup>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command='$(SolutionDir)AssemblyPublicizer.exe --input="$(FoundryAssembliesPath)Main.dll" --output="$(SolutionDir)publicized_assemblies\Main.dll"' />
-  </Target>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command='if not exist "$(TargetModDir)" mkdir "$(TargetModDir)"' />
