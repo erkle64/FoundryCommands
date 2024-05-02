@@ -109,7 +109,7 @@ namespace FoundryCommands
             //    }
             //}),
             new CommandHandler(@"^\/tp(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0)
+                if (arguments.Length == 0 || arguments[0].Length == 0)
                 {
                     ChatFrame.addMessage("Usage: <b>/tp</b> <i>waypoint-name</i>", 0);
                     return;
@@ -176,7 +176,7 @@ namespace FoundryCommands
                 ChatFrame.addMessage($"Total: {buildings.Count}", 0);
             }),
             new CommandHandler(@"^\/spawnOre(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0)
+                if (arguments.Length == 0 || arguments[0].Length == 0)
                 {
                     ChatFrame.addMessage("Usage: <b>/spawnOre</b> <i>oreVeinType</i>", 0);
                     return;
