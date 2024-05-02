@@ -48,7 +48,7 @@ namespace FoundryCommands
             var character = GameRoot.getClientCharacter();
             if (character == null)
             {
-                ChatFrame.addMessage("Client character not found.");
+                ChatFrame.addMessage("Client character not found.", 0);
                 return;
             }
 
@@ -109,9 +109,9 @@ namespace FoundryCommands
             //    }
             //}),
             new CommandHandler(@"^\/tp(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0 && arguments[0].Length == 0)
+                if (arguments.Length == 0)
                 {
-                    ChatFrame.addMessage("Usage: <b>/tp</b> <i>waypoint-name</i>");
+                    ChatFrame.addMessage("Usage: <b>/tp</b> <i>waypoint-name</i>", 0);
                     return;
                 }
 
@@ -119,7 +119,7 @@ namespace FoundryCommands
                 var character = GameRoot.getClientCharacter();
                 if (character == null)
                 {
-                    ChatFrame.addMessage("Client character not found.");
+                    ChatFrame.addMessage("Client character not found.", 0);
                     return;
                 }
 
@@ -145,7 +145,7 @@ namespace FoundryCommands
                     }
                 }
 
-                ChatFrame.addMessage("Waypoint not found.");
+                ChatFrame.addMessage("Waypoint not found.", 0);
             }),
             new CommandHandler(@"^\/count$", (string[] arguments) => {
                 if (!Directory.Exists(dumpFolder)) Directory.CreateDirectory(dumpFolder);
@@ -172,20 +172,20 @@ namespace FoundryCommands
                 }
                 f.Close();
 
-                ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt");
-                ChatFrame.addMessage($"Total: {buildings.Count}");
+                ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt", 0);
+                ChatFrame.addMessage($"Total: {buildings.Count}", 0);
             }),
             new CommandHandler(@"^\/spawnOre(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0 && arguments[0].Length == 0)
+                if (arguments.Length == 0)
                 {
-                    ChatFrame.addMessage("Usage: <b>/spawnOre</b> <i>oreVeinType</i>");
+                    ChatFrame.addMessage("Usage: <b>/spawnOre</b> <i>oreVeinType</i>", 0);
                     return;
                 }
 
                 var character = GameRoot.getClientCharacter();
                 if (character == null)
                 {
-                    ChatFrame.addMessage("Client character not found.");
+                    ChatFrame.addMessage("Client character not found.", 0);
                     return;
                 }
 
@@ -198,16 +198,16 @@ namespace FoundryCommands
                         center = worldCellPos;
                     }
 
-                    ChatFrame.addMessage($"Spawning {terrainBlockType.name} ore vein at {center.x} {center.y} {center.z}");
+                    ChatFrame.addMessage($"Spawning {terrainBlockType.name} ore vein at {center.x} {center.y} {center.z}", 0);
 
                     if (terrainBlockType.parentBOT == null)
                     {
-                        ChatFrame.addMessage($"Ore template not buildable");
+                        ChatFrame.addMessage($"Ore template not buildable", 0);
                         return;
                     }
                     if (terrainBlockType.parentBOT.parentItemTemplate == null)
                     {
-                        ChatFrame.addMessage($"Ore template has no item");
+                        ChatFrame.addMessage($"Ore template has no item", 0);
                         return;
                     }
 
@@ -248,7 +248,7 @@ namespace FoundryCommands
                         var count = ChunkManager.chunks_getOrePatchCount(chunkIndex);
                         var orePatchData = new Chunk.OrePatchData[count];
                         ChunkManager.chunks_populateOrePatchData(chunkIndex, orePatchData, count);
-                        ChatFrame.addMessage($"Found {count} ore patches in chunk {chunkIndex} {chunkX}x{chunkZ}");
+                        ChatFrame.addMessage($"Found {count} ore patches in chunk {chunkIndex} {chunkX}x{chunkZ}", 0);
                     }
                 }
 
@@ -258,7 +258,7 @@ namespace FoundryCommands
                 {
                     if (template.parentBOT != null && template.parentBOT.identifier.StartsWith("_erkle_terrain"))
                     {
-                        ChatFrame.addMessage($"Found ore type: {template.identifier}");
+                        ChatFrame.addMessage($"Found ore type: {template.identifier}", 0);
 
                         if(template.identifier.ToLower() == oreVeinTemplateName || template.name.ToLower() == oreVeinTemplateName)
                         {
@@ -273,13 +273,13 @@ namespace FoundryCommands
                 }
                 switch(foundTemplates.Count)
                 {
-                    case 0: ChatFrame.addMessage("Found no matching ore block template"); break;
+                    case 0: ChatFrame.addMessage("Found no matching ore block template", 0); break;
                     case 1: SpawnOreVein(foundTemplates[0]); break;
                     default:
-                        ChatFrame.addMessage("Found multiple matches:");
+                        ChatFrame.addMessage("Found multiple matches:", 0);
                         foreach(var template in foundTemplates)
                         {
-                            ChatFrame.addMessage($"name: {template.name}    ident: {template.identifier}");
+                            ChatFrame.addMessage($"name: {template.name}    ident: {template.identifier}", 0);
                         }
                         break;
                 }
@@ -292,7 +292,7 @@ namespace FoundryCommands
                     var character = GameRoot.getClientCharacter();
                     if(character == null)
                     {
-                        ChatFrame.addMessage("<b>ERROR:</b> Client character not found!");
+                        ChatFrame.addMessage("<b>ERROR:</b> Client character not found!", 0);
                         return;
                     }
                     GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", amount, item.name), 0, false));
@@ -319,13 +319,13 @@ namespace FoundryCommands
                         }
                         switch(foundItems.Count)
                         {
-                            case 0: ChatFrame.addMessage("Found no matching item template"); break;
+                            case 0: ChatFrame.addMessage("Found no matching item template", 0); break;
                             case 1: GiveItem(foundItems[0], count); break;
                             default:
-                                ChatFrame.addMessage("Found multiple matches:");
+                                ChatFrame.addMessage("Found multiple matches:", 0);
                                 foreach(var item in foundItems)
                                 {
-                                    ChatFrame.addMessage($"name: {item.name}    ident: {item.identifier}");
+                                    ChatFrame.addMessage($"name: {item.name}    ident: {item.identifier}", 0);
                                 }
                                 break;
                         }
@@ -336,7 +336,7 @@ namespace FoundryCommands
                         goto case 1;
 
                     default:
-                        ChatFrame.addMessage("Usage: <b>/give</b> <i>name</i> <i>amount</i>");
+                        ChatFrame.addMessage("Usage: <b>/give</b> <i>name</i> <i>amount</i>", 0);
                         break;
                 }
             }),
@@ -417,7 +417,7 @@ namespace FoundryCommands
                 dumpDictionary<CraftingRecipeCategory>("recipe_categories", ItemTemplateManager.getCraftingRecipeCategoryDictionary());
                 dumpEntry("", "}}");
                 f.Close();
-                ChatFrame.addMessage($"Data saved to {dataFolder}\\{MODNAME}\\idmap.json");
+                ChatFrame.addMessage($"Data saved to {dataFolder}\\{MODNAME}\\idmap.json", 0);
             }),
             new CommandHandler(@"^\/tweakItems\s+([\w\-.]+)(?:\s+(\w+)=((?:\""[^\""]*\"")|(?:[0-9]*(?:\.[0-9]*)?)))+$", (string[] arguments) => {
                 Debug.Log(string.Join(", ", arguments));
@@ -470,7 +470,7 @@ namespace FoundryCommands
                 dumpEntry("  ", "}}");
                 dumpEntry("", "}}");
                 f.Close();
-                ChatFrame.addMessage($"Data saved to BepInEx\\plugins\\{MODNAME}\\{targetPath}");
+                ChatFrame.addMessage($"Data saved to BepInEx\\plugins\\{MODNAME}\\{targetPath}", 0);
             })
         };
 
@@ -496,7 +496,7 @@ namespace FoundryCommands
                 }
                 catch(System.Exception e)
                 {
-                    ChatFrame.addMessage(e.ToString());
+                    ChatFrame.addMessage(e.ToString(), 0);
                 }
 
                 return true;
