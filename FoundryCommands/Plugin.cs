@@ -7,19 +7,18 @@ using System.IO;
 using System.Threading;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using C3;
 using System.Linq;
 
 namespace FoundryCommands
 {
-    [UnfoundryMod(Plugin.GUID)]
+    [UnfoundryMod(GUID)]
     public class Plugin : UnfoundryPlugin
     {
         public const string
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.0";
+            VERSION = "1.6.2";
 
         public static LogSource log;
 
@@ -59,55 +58,55 @@ namespace FoundryCommands
 
         public static CommandHandler[] commandHandlers = new CommandHandler[]
         {
-            //new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
-            //    switch(arguments.Length)
-            //    {
-            //        case 1:
-            //            var range = float.Parse(arguments[0]);
-            //            if(range < 38) range = 38;
-            //            range = ((int)range) - 0.5f;
-            //            var range2 = range*2.0f;
-            //            var gameRoot = GameRoot.getSingleton();
-            //            var dragHelperGO = Traverse.Create(gameRoot).Field("dragHelperGO").GetValue() as DragHelperGO;
-            //            var dragHelperGO_bulkDemolish = Traverse.Create(gameRoot).Field("dragHelperGO_bulkDemolish").GetValue() as DragHelperGO;
-            //            dragHelperGO.collider_area_xz.size = new Vector3(range, 0.05f, range);
-            //            dragHelperGO.collider_area_xz_elevated.size = new Vector3(range, 0.05f, range);
-            //            dragHelperGO.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO.collider_wall_x.size = new Vector3(range, range, 0.05f);
-            //            dragHelperGO.collider_wall_z.size = new Vector3(0.05f, range, range);
-            //            dragHelperGO_bulkDemolish.collider_area_xz.size = new Vector3(range, 0.05f, range);
-            //            dragHelperGO_bulkDemolish.collider_area_xz_elevated.size = new Vector3(range, 0.05f, range);
-            //            dragHelperGO_bulkDemolish.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO_bulkDemolish.collider_wall_x.size = new Vector3(range, range, 0.05f);
-            //            dragHelperGO_bulkDemolish.collider_wall_z.size = new Vector3(0.05f, range, range);
+            new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
+                switch(arguments.Length)
+                {
+                    case 1:
+                        var range = float.Parse(arguments[0]);
+                        if(range < 38) range = 38;
+                        range = ((int)range) - 0.5f;
+                        var range2 = range*2.0f;
+                        var gameRoot = GameRoot.getSingleton();
+                        var dragHelperGO = Traverse.Create(gameRoot).Field("dragHelperGO").GetValue() as DragHelperGO;
+                        var dragHelperGO_bulkDemolish = Traverse.Create(gameRoot).Field("dragHelperGO_bulkDemolish").GetValue() as DragHelperGO;
+                        dragHelperGO.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
+                        dragHelperGO.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
+                        dragHelperGO.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
+                        dragHelperGO.collider_wall_z.size = new Vector3(0.05f, range2, range2);
+                        dragHelperGO_bulkDemolish.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
+                        dragHelperGO_bulkDemolish.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
+                        dragHelperGO_bulkDemolish.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO_bulkDemolish.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
+                        dragHelperGO_bulkDemolish.collider_wall_z.size = new Vector3(0.05f, range2, range2);
 
-            //            dragHelperGO.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-            //            dragHelperGO.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-            //            dragHelperGO.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO_bulkDemolish.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO_bulkDemolish.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO_bulkDemolish.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO_bulkDemolish.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO_bulkDemolish.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-            //            dragHelperGO_bulkDemolish.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO_bulkDemolish.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-            //            dragHelperGO_bulkDemolish.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            dragHelperGO_bulkDemolish.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-            //            dragHelperGO_bulkDemolish.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-            //            break;
+                        dragHelperGO.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
+                        dragHelperGO.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
+                        dragHelperGO.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO_bulkDemolish.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO_bulkDemolish.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO_bulkDemolish.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO_bulkDemolish.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO_bulkDemolish.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
+                        dragHelperGO_bulkDemolish.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO_bulkDemolish.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
+                        dragHelperGO_bulkDemolish.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        dragHelperGO_bulkDemolish.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
+                        dragHelperGO_bulkDemolish.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        break;
 
-            //        default:
-            //            ChatFrame.addMessage("Usage: <b>/drag</b> <i>range</i>");
-            //            return;
-            //    }
-            //}),
+                    default:
+                        ChatFrame.addMessage("Usage: <b>/drag</b> <i>range</i>", 0);
+                        return;
+                }
+            }),
             new CommandHandler(@"^\/tp(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
                 if (arguments.Length == 0 || arguments[0].Length == 0)
                 {
@@ -134,7 +133,7 @@ namespace FoundryCommands
                         if(chunk != null)
                         {
                             GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0, false));
-                            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
+                            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y + 0.5f, wp.waypointPosition.z));
                         }
                         else
                         {
@@ -288,6 +287,10 @@ namespace FoundryCommands
                 void GiveItem(ItemTemplate item, uint amount)
                 {
                     if (amount == 0) amount = item.stackSize;
+                    else if(GameRoot.IsMultiplayerEnabled)
+                    {
+                        ChatFrame.addMessage("<b>WARNING:</b> Count parameter not supported in multiplayer. Giving 1 stack.", 0);
+                    }
 
                     var character = GameRoot.getClientCharacter();
                     if(character == null)
@@ -295,8 +298,16 @@ namespace FoundryCommands
                         ChatFrame.addMessage("<b>ERROR:</b> Client character not found!", 0);
                         return;
                     }
-                    GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", amount, item.name), 0, false));
-                    InventoryManager.inventoryManager_tryAddItemAtAnyPosition(character.inventoryId, item.id, amount, IOBool.iofalse);
+                    if (GameRoot.IsMultiplayerEnabled)
+                    {
+                        GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", item.stackSize, item.name), 0, false));
+                        GameRoot.addLockstepEvent(new DebugItemSpawnEvent(character.usernameHash, item.id));
+                    }
+                    else
+                    {
+                        GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Spawning {0} of {1}", amount, item.name), 0, false));
+                        InventoryManager.inventoryManager_tryAddItemAtAnyPosition(character.inventoryId, item.id, amount, IOBool.iofalse);
+                    }
                 }
 
                 uint count = 0;
@@ -481,6 +492,9 @@ namespace FoundryCommands
             [HarmonyPrefix]
             public static bool ChatFrame_onReturnCB()
             {
+                Character clientCharacter = GameRoot.getClientCharacter();
+                if (clientCharacter == null) return true;
+
                 try
                 {
                     var message = ChatFrame.getMessage();
