@@ -16,28 +16,31 @@ All commands are case insensitve.
 
 #### Commands
 
-- **/drag** _range_  
+- **/drag** _range_
    Change the maximum range for drag building.  Use /drag 0 to restore default.
 
-- **/tp** _waypoint-name_  
+- **/tp** _waypoint-name_ *or* **/teleport** _waypoint-name_
    Teleport to the named waypoint.
 
-- **/give** _item_  
+- **/tpr** *or* **/ret** *or* **/return**
+   Teleport back to position at last teleport.
+
+- **/give** _item_
    Spawn single item into your inventory.
 
-- **/give** _item_ _amount_  
+- **/give** _item_ _amount_
    Spawn multiple items into your inventory.
 
-- **/count**  
+- **/count**
    Dump counts for all buildings within loading distance of the player.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\count.txt`  
 
-- **/dumpData**  
+- **/dumpData**
    Dump data for use with Foundry Save Editor.  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\idmap.json`  
 
-- **/dumpData minify**  
+- **/dumpData minify**
    Same as above but leaving out extra whitespaces.  
 
-- **/tweakItems** _tweak-name_ _identifier_=_value_...  
+- **/tweakItems** _tweak-name_ _identifier_=_value_...
    Generate a tweak file for use with [Tweakificator](https://github.com/erkle64/Tweakificator).  Saves to `%AppData%\\..\\LocalLow\\Channel 3 Entertainment\\Foundry\\FoundryCommands\\_tweak-name_.json`  
    Example: `/tweakItems Stack2000 stackSize=2000`
 

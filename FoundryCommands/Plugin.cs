@@ -18,9 +18,12 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.2";
+            VERSION = "1.6.3";
 
         public static LogSource log;
+
+        private static Vector3 _lastPositionAtTeleport = Vector3.zero;
+        private static bool _hasTeleported = false;
 
         public Plugin()
         {
@@ -107,7 +110,7 @@ namespace FoundryCommands
                         return;
                 }
             }),
-            new CommandHandler(@"^\/tp(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
+            new CommandHandler(@"^\/(?:(?:tp)|(?:teleport))(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
                 if (arguments.Length == 0 || arguments[0].Length == 0)
                 {
                     ChatFrame.addMessage("Usage: <b>/tp</b> <i>waypoint-name</i>", 0);
@@ -128,10 +131,12 @@ namespace FoundryCommands
                     {
                         ulong cidx;
                         uint tidx;
-                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords((int)wp.waypointPosition.x, (int)wp.waypointPosition.y, (int)wp.waypointPosition.z, out cidx, out tidx);
-                        var chunk = ChunkManager.getChunkByWorldCoords((int)wp.waypointPosition.x, (int)wp.waypointPosition.z);
+                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wp.waypointPosition.x,wp.waypointPosition.y,wp.waypointPosition.z,out cidx,out tidx);
+                        var chunk = ChunkManager.getChunkByWorldCoords(wp.waypointPosition.x, wp.waypointPosition.z);
                         if(chunk != null)
                         {
+                            _lastPositionAtTeleport = character.position;
+                            _hasTeleported = true;
                             GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, string.Format("Teleporting to '{0}' at {1}, {2}, {3}", wp.description, wp.waypointPosition.x.ToString(), wp.waypointPosition.y.ToString(), wp.waypointPosition.z.ToString()), 0, false));
                             GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y + 0.5f, wp.waypointPosition.z));
                         }
@@ -145,6 +150,42 @@ namespace FoundryCommands
                 }
 
                 ChatFrame.addMessage("Waypoint not found.", 0);
+            }),
+            new CommandHandler(@"^\/(?:(?:tpr)|(?:ret)|(?:return))$", (string[] arguments) => {
+                if (!_hasTeleported)
+                {
+                    ChatFrame.addMessage("No return point found.", 0);
+                    return;
+                }
+
+                var character = GameRoot.getClientCharacter();
+                if (character == null)
+                {
+                    ChatFrame.addMessage("Client character not found.", 0);
+                    return;
+                }
+
+                var targetCube = new Vector3Int(
+                    Mathf.FloorToInt(_lastPositionAtTeleport.x),
+                    Mathf.FloorToInt(_lastPositionAtTeleport.y),
+                    Mathf.FloorToInt(_lastPositionAtTeleport.z)
+                    );
+
+                ulong cidx;
+                uint tidx;
+                ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(targetCube.x,targetCube.y,targetCube.z,out cidx,out tidx);
+                var chunk = ChunkManager.getChunkByWorldCoords(targetCube.x, targetCube.z);
+                if(chunk != null)
+                {
+                    GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, $"Returning to {targetCube.x}, {targetCube.y}, {targetCube.z}", 0, false));
+                    GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, _lastPositionAtTeleport.x, _lastPositionAtTeleport.y, _lastPositionAtTeleport.z));
+                    _lastPositionAtTeleport = character.position;
+                }
+                else
+                {
+                    ChatFrame.addMessage("Ungenerated chunk.", 0);
+                    ChunkManager.generateNewChunksBasedOnPosition(_lastPositionAtTeleport, ChunkManager._getChunkLoadDistance());
+                }
             }),
             new CommandHandler(@"^\/count$", (string[] arguments) => {
                 if (!Directory.Exists(dumpFolder)) Directory.CreateDirectory(dumpFolder);
