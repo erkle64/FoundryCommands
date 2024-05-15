@@ -8,6 +8,9 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System;
+using Expressive;
+using Expressive.Exceptions;
 
 namespace FoundryCommands
 {
@@ -42,6 +45,23 @@ namespace FoundryCommands
         public static string dumpFolder;
 
         private static Timer teleportTimer = null;
+
+        private static FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private const ulong TICKS_PER_DAY = GameRoot.TIME_SYSTEM_TICKS_PER_DAY;
+        private const ulong TICKS_PER_HOUR = GameRoot.TIME_SYSTEM_TICKS_PER_DAY / 24UL;
+        private const ulong TICKS_PER_MINUTE = TICKS_PER_HOUR / 60UL;
+        private static Vector2Int TicksToTime(ulong ticks)
+        {
+            var hours = ticks / TICKS_PER_HOUR % 24UL;
+            var minutes = ticks / TICKS_PER_MINUTE % 60UL;
+            return new Vector2Int((int)hours, (int)minutes);
+        }
+
+        private static ulong TimeToTicks(int hours, int minutes)
+        {
+            return (ulong)hours * TICKS_PER_HOUR + (ulong)minutes * TICKS_PER_MINUTE;
+        }
 
         static void timer_Teleport(object state)
         {
@@ -118,6 +138,7 @@ namespace FoundryCommands
                 }
 
                 var wpName = arguments[0];
+
                 var character = GameRoot.getClientCharacter();
                 if (character == null)
                 {
@@ -185,6 +206,48 @@ namespace FoundryCommands
                 {
                     ChatFrame.addMessage("Ungenerated chunk.", 0);
                     ChunkManager.generateNewChunksBasedOnPosition(_lastPositionAtTeleport, ChunkManager._getChunkLoadDistance());
+                }
+            }),
+            new CommandHandler(@"^\/time$", (string[] arguments) => {
+                var gameRoot = GameRoot.getSingleton();
+                if (gameRoot == null) return;
+
+                var time = TicksToTime((ulong)timeInTicks.GetValue(gameRoot));
+
+                ChatFrame.addMessage($"Current time is {time.x}:{time.y:00}.", 0);
+            }),
+            new CommandHandler(@"^\/time\s+([012]?\d)(?:\:(\d\d))?$", (string[] arguments) => {
+                var gameRoot = GameRoot.getSingleton();
+                if (gameRoot == null) return;
+
+                var hours = Convert.ToInt32(arguments[0]);
+                var minutes = arguments.Length > 1 && !string.IsNullOrWhiteSpace(arguments[1]) ? Convert.ToInt32(arguments[1]) : 0;
+                var targetTicks = TimeToTicks(hours, minutes);
+                var currentTicks = (ulong)timeInTicks.GetValue(gameRoot);
+                var deltaTicks = (targetTicks + TICKS_PER_DAY - (currentTicks % TICKS_PER_DAY)) % TICKS_PER_DAY;
+                GameRoot.addLockstepEvent(new GameRoot.DebugAdvanceTimeEvent(deltaTicks));
+
+
+                var message = $"Setting time to {hours}:{minutes:00}.";
+                var character = GameRoot.getClientCharacter();
+                if (character == null)
+                {
+                    ChatFrame.addMessage(message, 0);
+                }
+                else
+                {
+                    GameRoot.addLockstepEvent(new GameRoot.ChatMessageEvent(character.usernameHash, message, 0, false));
+                }
+            }),
+            new CommandHandler(@"^\/(?:(?:c)|(?:calc)|(?:calculate))\s+(.+)$", (string[] arguments) => {
+                try {
+                    var expression = new Expression(arguments[0].Trim(), ExpressiveOptions.IgnoreCaseForParsing | ExpressiveOptions.NoCache);
+                    var result = expression.Evaluate();
+                    ChatFrame.addMessage($"{arguments[0]} = {result}", 0);
+                }
+                catch(ExpressiveException e)
+                {
+                    ChatFrame.addMessage($"Error: {e.Message}", 0);
                 }
             }),
             new CommandHandler(@"^\/count$", (string[] arguments) => {

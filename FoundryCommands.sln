@@ -2,7 +2,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundryCommands", "FoundryCommands\FoundryCommands.csproj", "{4D3457CB-C66A-4B7F-9C93-1789491C0AD9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FoundryCommands", "FoundryCommands\FoundryCommands.csproj", "{4D3457CB-C66A-4B7F-9C93-1789491C0AD9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Expressive", "expressive\Source\Expressive\Expressive.csproj", "{05802AED-8175-425B-9F0B-54DE03AFA341}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,6 +16,10 @@ Global
 		{4D3457CB-C66A-4B7F-9C93-1789491C0AD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D3457CB-C66A-4B7F-9C93-1789491C0AD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D3457CB-C66A-4B7F-9C93-1789491C0AD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05802AED-8175-425B-9F0B-54DE03AFA341}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05802AED-8175-425B-9F0B-54DE03AFA341}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05802AED-8175-425B-9F0B-54DE03AFA341}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05802AED-8175-425B-9F0B-54DE03AFA341}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -22,4 +28,3 @@ Global
 		SolutionGuid = {62A65396-49B3-44EA-98A0-E54A55991FB4}
 	EndGlobalSection
 EndGlobal
-

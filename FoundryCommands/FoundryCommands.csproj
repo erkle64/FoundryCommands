@@ -8,6 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.32">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\expressive\Source\Expressive\Expressive.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>$(FoundryAssembliesPath)0Harmony.dll</HintPath>
     </Reference>
@@ -29,9 +40,8 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command='if not exist "$(TargetModDir)" mkdir "$(TargetModDir)"' />
-    <Exec Command='copy /Y "$(SolutionDir)Mod\*.*" "$(TargetModPath)"' />
-    <Exec Command='copy /Y "$(TargetPath)" "$(TargetModPath)"' />
+    <Exec Command="if not exist &quot;$(TargetModDir)&quot; mkdir &quot;$(TargetModDir)&quot;" />
+    <Exec Command="copy /Y &quot;$(SolutionDir)Mod\*.*&quot; &quot;$(TargetModPath)&quot;" />
   </Target>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
