@@ -16,6 +16,18 @@ All commands are case insensitve.
 
 #### Commands
 
+- **/time**
+   Displays the current time of day.
+
+- **/time** _HH_
+   Set the time of day to _HH_:00
+
+- **/time** _HH_:_MM_
+  Set the time of day to _HH_:_MM_
+
+- **/calculate** _expression_ or **/calc** _expression_ or **/c** _expression_
+   Calculate the result of a mathematical expression. See [Expressive wiki](https://github.com/bijington/expressive/wiki/Functions) for available functions.
+
 - **/drag** _range_
    Change the maximum range for drag building.  Use /drag 0 to restore default.
 

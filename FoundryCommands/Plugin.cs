@@ -21,7 +21,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.3";
+            VERSION = "1.6.4";
 
         public static LogSource log;
 
