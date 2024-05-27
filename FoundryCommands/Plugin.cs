@@ -4,13 +4,14 @@ using System.Reflection;
 using Unfoundry;
 using UnityEngine;
 using System.IO;
-using System.Threading;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System;
 using Expressive;
 using Expressive.Exceptions;
+using static BuildingModeHelpers;
+using C3;
 
 namespace FoundryCommands
 {
@@ -21,9 +22,11 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.4";
+            VERSION = "1.6.5";
 
         public static LogSource log;
+
+        public static TypedConfigEntry<int> maxDragBuffer;
 
         private static Vector3 _lastPositionAtTeleport = Vector3.zero;
         private static bool _hasTeleported = false;
@@ -31,6 +34,17 @@ namespace FoundryCommands
         public Plugin()
         {
             log = new LogSource(MODNAME);
+
+            new Config(GUID)
+                .Group("Drag")
+                    .Entry(out maxDragBuffer, "maxDragBuffer", 2046,
+                        "WARNING: Experimental feature!",
+                        "May cause crashing if used incorrectly.",
+                        "The maximum number of blocks that can be dragged at once.",
+                        "Will be rounded up to the next multiple of 1023.")
+                .EndGroup()
+                .Load()
+                .Save();
         }
 
         public override void Load(Mod mod)
@@ -44,7 +58,7 @@ namespace FoundryCommands
         public static string dataFolder;
         public static string dumpFolder;
 
-        private static Timer teleportTimer = null;
+        private static float _dragPlanScaleModifier = 1.0f;
 
         private static FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -63,22 +77,6 @@ namespace FoundryCommands
             return (ulong)hours * TICKS_PER_HOUR + (ulong)minutes * TICKS_PER_MINUTE;
         }
 
-        static void timer_Teleport(object state)
-        {
-            var wp = (Waypoint)state;
-
-            var character = GameRoot.getClientCharacter();
-            if (character == null)
-            {
-                ChatFrame.addMessage("Client character not found.", 0);
-                return;
-            }
-
-            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
-            teleportTimer.Dispose();
-            teleportTimer = null;
-        }
-
         public static CommandHandler[] commandHandlers = new CommandHandler[]
         {
             new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
@@ -86,43 +84,9 @@ namespace FoundryCommands
                 {
                     case 1:
                         var range = float.Parse(arguments[0]);
-                        if(range < 38) range = 38;
-                        range = ((int)range) - 0.5f;
-                        var range2 = range*2.0f;
-                        var gameRoot = GameRoot.getSingleton();
-                        var dragHelperGO = Traverse.Create(gameRoot).Field("dragHelperGO").GetValue() as DragHelperGO;
-                        var dragHelperGO_bulkDemolish = Traverse.Create(gameRoot).Field("dragHelperGO_bulkDemolish").GetValue() as DragHelperGO;
-                        dragHelperGO.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
-                        dragHelperGO.collider_wall_z.size = new Vector3(0.05f, range2, range2);
-                        dragHelperGO_bulkDemolish.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO_bulkDemolish.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO_bulkDemolish.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
-                        dragHelperGO_bulkDemolish.collider_wall_z.size = new Vector3(0.05f, range2, range2);
-
-                        dragHelperGO.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-                        dragHelperGO.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-                        dragHelperGO.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-                        dragHelperGO_bulkDemolish.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-                        dragHelperGO_bulkDemolish.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        if(range < 38.0f) range = 38.0f;
+                        _dragPlanScaleModifier = (range - 0.5f) / 37.5f;
+                        ChatFrame.addMessage($"Drag scale set to {range}.", 0);
                         break;
 
                     default:
@@ -277,115 +241,6 @@ namespace FoundryCommands
 
                 ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt", 0);
                 ChatFrame.addMessage($"Total: {buildings.Count}", 0);
-            }),
-            new CommandHandler(@"^\/spawnOre(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0 || arguments[0].Length == 0)
-                {
-                    ChatFrame.addMessage("Usage: <b>/spawnOre</b> <i>oreVeinType</i>", 0);
-                    return;
-                }
-
-                var character = GameRoot.getClientCharacter();
-                if (character == null)
-                {
-                    ChatFrame.addMessage("Client character not found.", 0);
-                    return;
-                }
-
-                void SpawnOreVein(TerrainBlockType terrainBlockType)
-                {
-                    ChunkManager.convertWorldFloatCoordsToIntCoords(character.position, out var center);
-                    var oreVeinSpawningSystem = GameRoot.World.Systems.Get<OreVeinSpawningSystem>();
-                    if (GameRoot.World.Systems.Get<RaycastHelperSystem>().raycastFromCameraToTerrain(out Vector3 _, out var worldCellPos))
-                    {
-                        center = worldCellPos;
-                    }
-
-                    ChatFrame.addMessage($"Spawning {terrainBlockType.name} ore vein at {center.x} {center.y} {center.z}", 0);
-
-                    if (terrainBlockType.parentBOT == null)
-                    {
-                        ChatFrame.addMessage($"Ore template not buildable", 0);
-                        return;
-                    }
-                    if (terrainBlockType.parentBOT.parentItemTemplate == null)
-                    {
-                        ChatFrame.addMessage($"Ore template has no item", 0);
-                        return;
-                    }
-
-                    var chunkIds = new HashSet<ulong>();
-                    var from = center - new Vector3Int(10, 5, 10);
-                    var to = center + new Vector3Int(10, 5, 10);
-                    for (int wz = from.z; wz <= to.z; ++wz)
-                    {
-                        for (int wy = from.y; wy <= to.y; ++wy)
-                        {
-                            for (int wx = from.x; wx <= to.x; ++wx)
-                            {
-                                var dx = Mathf.Abs(wx - center.x);
-                                var dy = Mathf.Abs(wy - center.y) * 2;
-                                var dz = Mathf.Abs(wz - center.z);
-                                var distanceSqr = dx*dx + dy*dy + dz*dz;
-                                if (distanceSqr <= 100)
-                                {
-                                    ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wx, wy, wz, out var chunkIndex, out var blockIndex);
-                                    var terrainData = ChunkManager.chunks_getTerrainData(chunkIndex, blockIndex);
-
-                                    chunkIds.Add(chunkIndex);
-
-                                    if (terrainData > 0 && terrainData < GameRoot.BUILDING_PART_ARRAY_IDX_START)
-                                    {
-                                        var worldPos = new Vector3Int(wx, wy, wz);
-                                        GameRoot.addLockstepEvent(new Character.RemoveTerrainEvent(character.usernameHash, worldPos, ulong.MaxValue));
-                                        GameRoot.addLockstepEvent(new BuildEntityEvent(character.usernameHash, terrainBlockType.parentBOT.parentItemTemplate.id, 0, worldPos, 0, Quaternion.identity, 0, 0, false));
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    foreach (var chunkIndex in chunkIds)
-                    {
-                        ChunkManager.getChunkCoordsFromChunkIdx(chunkIndex, out var chunkX, out var chunkZ);
-                        var count = ChunkManager.chunks_getOrePatchCount(chunkIndex);
-                        var orePatchData = new Chunk.OrePatchData[count];
-                        ChunkManager.chunks_populateOrePatchData(chunkIndex, orePatchData, count);
-                        ChatFrame.addMessage($"Found {count} ore patches in chunk {chunkIndex} {chunkX}x{chunkZ}", 0);
-                    }
-                }
-
-                var oreVeinTemplateName = arguments[0].ToLower();
-                List<TerrainBlockType> foundTemplates = new List<TerrainBlockType>();
-                foreach(var template in ItemTemplateManager.getAllTerrainTemplates().Values)
-                {
-                    if (template.parentBOT != null && template.parentBOT.identifier.StartsWith("_erkle_terrain"))
-                    {
-                        ChatFrame.addMessage($"Found ore type: {template.identifier}", 0);
-
-                        if(template.identifier.ToLower() == oreVeinTemplateName || template.name.ToLower() == oreVeinTemplateName)
-                        {
-                            SpawnOreVein(template);
-                            break;
-                        }
-                        else if(template.identifier.ToLower().Contains(oreVeinTemplateName) || template.name.ToLower().Contains(oreVeinTemplateName))
-                        {
-                            foundTemplates.Add(template);
-                        }
-                    }
-                }
-                switch(foundTemplates.Count)
-                {
-                    case 0: ChatFrame.addMessage("Found no matching ore block template", 0); break;
-                    case 1: SpawnOreVein(foundTemplates[0]); break;
-                    default:
-                        ChatFrame.addMessage("Found multiple matches:", 0);
-                        foreach(var template in foundTemplates)
-                        {
-                            ChatFrame.addMessage($"name: {template.name}    ident: {template.identifier}", 0);
-                        }
-                        break;
-                }
             }),
             new CommandHandler(@"^\/give(?:\s+([\s\w\d]*?)(?:\s+(\d+))?)?$", (string[] arguments) => {
                 void GiveItem(ItemTemplate item, uint amount)
@@ -592,6 +447,57 @@ namespace FoundryCommands
         [HarmonyPatch]
         public static class Patch
         {
+            private static Vector3 scale_wall_x = Vector3.one;
+            private static Vector3 scale_wall_z = Vector3.one;
+            private static Vector3 scale_slope = Vector3.one;
+            private static Material material_scaled = null;
+
+            [HarmonyPatch(typeof(DragModeWorkingData), nameof(DragModeWorkingData.init))]
+            [HarmonyPostfix]
+            public static void DragModeWorkingData_init(DragModeWorkingData __instance)
+            {
+                var maxDragBuffer = Plugin.maxDragBuffer.Get();
+                if (maxDragBuffer > 1023 * 2)
+                {
+                    var maxDragBufferCount = Mathf.CeilToInt(maxDragBuffer / 1023.0f);
+                    var maxDragBufferSize = maxDragBufferCount * 1023;
+                    __instance.dragPositions = new Vector3Int[maxDragBufferSize];
+                    __instance.dragValidationArray = new bool[maxDragBufferSize];
+                    __instance.dmrc_dragMatrices_green = new DrawMeshRenderingContainer(maxDragBufferCount, false);
+                    __instance.dmrc_dragMatrices_red = new DrawMeshRenderingContainer(maxDragBufferCount, false);
+                }
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), "Awake")]
+            [HarmonyPostfix]
+            public static void DragHelperGO_Awake(DragHelperGO __instance)
+            {
+                scale_wall_x = __instance.go_wall_x.transform.localScale;
+                scale_wall_z = __instance.go_wall_z.transform.localScale;
+                scale_slope = __instance.go_slope.transform.localScale;
+                material_scaled = __instance.go_wall_x.GetComponent<MeshRenderer>().sharedMaterial;
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), nameof(DragHelperGO.setMode))]
+            [HarmonyPrefix]
+            public static void DragHelperGO_setMode(ref float dragPlanScaleModifier)
+            {
+                if (dragPlanScaleModifier < _dragPlanScaleModifier) dragPlanScaleModifier = _dragPlanScaleModifier;
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), nameof(DragHelperGO.setMode))]
+            [HarmonyPostfix]
+            public static void DragHelperGO_setMode(DragHelperGO __instance, BuildableObjectTemplate bot, BuildableObjectTemplate.DragBuildType dragBuildType, float dragPlanScaleModifier)
+            {
+                __instance.go_wall_x.transform.localScale = new Vector3(scale_wall_x.x * dragPlanScaleModifier, scale_wall_x.y * dragPlanScaleModifier, scale_wall_x.z);
+                __instance.go_wall_z.transform.localScale = new Vector3(scale_wall_z.x, scale_wall_z.y * dragPlanScaleModifier, scale_wall_z.z * dragPlanScaleModifier);
+                __instance.go_slope.transform.localScale = new Vector3(scale_slope.x * dragPlanScaleModifier, scale_slope.y, scale_slope.z * dragPlanScaleModifier);
+                __instance.collider_wall_x.size = new Vector3(scale_wall_x.x * dragPlanScaleModifier + 0.5f, scale_wall_x.y * dragPlanScaleModifier + 0.5f, scale_wall_x.z);
+                __instance.collider_wall_z.size = new Vector3(scale_wall_z.x, scale_wall_z.y * dragPlanScaleModifier + 0.5f, scale_wall_z.z * dragPlanScaleModifier + 0.5f);
+
+                material_scaled.SetTextureScale("_TextureY", new Vector2(scale_wall_x.x * dragPlanScaleModifier, scale_wall_x.y * dragPlanScaleModifier));
+            }
+
             [HarmonyPatch(typeof(ChatFrame), nameof(ChatFrame.onReturnCB))]
             [HarmonyPrefix]
             public static bool ChatFrame_onReturnCB()
