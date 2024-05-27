@@ -44,9 +44,7 @@ namespace FoundryCommands
         public static string dataFolder;
         public static string dumpFolder;
 
-        private static Timer teleportTimer = null;
-
-        private static FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private const ulong TICKS_PER_DAY = GameRoot.TIME_SYSTEM_TICKS_PER_DAY;
         private const ulong TICKS_PER_HOUR = GameRoot.TIME_SYSTEM_TICKS_PER_DAY / 24UL;
@@ -63,22 +61,6 @@ namespace FoundryCommands
             return (ulong)hours * TICKS_PER_HOUR + (ulong)minutes * TICKS_PER_MINUTE;
         }
 
-        static void timer_Teleport(object state)
-        {
-            var wp = (Waypoint)state;
-
-            var character = GameRoot.getClientCharacter();
-            if (character == null)
-            {
-                ChatFrame.addMessage("Client character not found.", 0);
-                return;
-            }
-
-            GameRoot.addLockstepEvent(new Character.CharacterRelocateEvent(character.usernameHash, wp.waypointPosition.x, wp.waypointPosition.y, wp.waypointPosition.z));
-            teleportTimer.Dispose();
-            teleportTimer = null;
-        }
-
         public static CommandHandler[] commandHandlers = new CommandHandler[]
         {
             new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
@@ -87,6 +69,7 @@ namespace FoundryCommands
                     case 1:
                         var range = float.Parse(arguments[0]);
                         if(range < 38) range = 38;
+                        ChatFrame.addMessage($"Setting drag area to {(int)range}", 0);
                         range = ((int)range) - 0.5f;
                         var range2 = range*2.0f;
                         var gameRoot = GameRoot.getSingleton();
@@ -150,9 +133,7 @@ namespace FoundryCommands
                 {
                     if (wp.description.ToLower() == wpName.ToLower())
                     {
-                        ulong cidx;
-                        uint tidx;
-                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wp.waypointPosition.x,wp.waypointPosition.y,wp.waypointPosition.z,out cidx,out tidx);
+                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wp.waypointPosition.x,wp.waypointPosition.y,wp.waypointPosition.z,out ulong cidx,out uint tidx);
                         var chunk = ChunkManager.getChunkByWorldCoords(wp.waypointPosition.x, wp.waypointPosition.z);
                         if(chunk != null)
                         {
@@ -192,9 +173,7 @@ namespace FoundryCommands
                     Mathf.FloorToInt(_lastPositionAtTeleport.z)
                     );
 
-                ulong cidx;
-                uint tidx;
-                ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(targetCube.x,targetCube.y,targetCube.z,out cidx,out tidx);
+                ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(targetCube.x,targetCube.y,targetCube.z,out ulong cidx,out uint tidx);
                 var chunk = ChunkManager.getChunkByWorldCoords(targetCube.x, targetCube.z);
                 if(chunk != null)
                 {
@@ -277,115 +256,6 @@ namespace FoundryCommands
 
                 ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt", 0);
                 ChatFrame.addMessage($"Total: {buildings.Count}", 0);
-            }),
-            new CommandHandler(@"^\/spawnOre(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
-                if (arguments.Length == 0 || arguments[0].Length == 0)
-                {
-                    ChatFrame.addMessage("Usage: <b>/spawnOre</b> <i>oreVeinType</i>", 0);
-                    return;
-                }
-
-                var character = GameRoot.getClientCharacter();
-                if (character == null)
-                {
-                    ChatFrame.addMessage("Client character not found.", 0);
-                    return;
-                }
-
-                void SpawnOreVein(TerrainBlockType terrainBlockType)
-                {
-                    ChunkManager.convertWorldFloatCoordsToIntCoords(character.position, out var center);
-                    var oreVeinSpawningSystem = GameRoot.World.Systems.Get<OreVeinSpawningSystem>();
-                    if (GameRoot.World.Systems.Get<RaycastHelperSystem>().raycastFromCameraToTerrain(out Vector3 _, out var worldCellPos))
-                    {
-                        center = worldCellPos;
-                    }
-
-                    ChatFrame.addMessage($"Spawning {terrainBlockType.name} ore vein at {center.x} {center.y} {center.z}", 0);
-
-                    if (terrainBlockType.parentBOT == null)
-                    {
-                        ChatFrame.addMessage($"Ore template not buildable", 0);
-                        return;
-                    }
-                    if (terrainBlockType.parentBOT.parentItemTemplate == null)
-                    {
-                        ChatFrame.addMessage($"Ore template has no item", 0);
-                        return;
-                    }
-
-                    var chunkIds = new HashSet<ulong>();
-                    var from = center - new Vector3Int(10, 5, 10);
-                    var to = center + new Vector3Int(10, 5, 10);
-                    for (int wz = from.z; wz <= to.z; ++wz)
-                    {
-                        for (int wy = from.y; wy <= to.y; ++wy)
-                        {
-                            for (int wx = from.x; wx <= to.x; ++wx)
-                            {
-                                var dx = Mathf.Abs(wx - center.x);
-                                var dy = Mathf.Abs(wy - center.y) * 2;
-                                var dz = Mathf.Abs(wz - center.z);
-                                var distanceSqr = dx*dx + dy*dy + dz*dz;
-                                if (distanceSqr <= 100)
-                                {
-                                    ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wx, wy, wz, out var chunkIndex, out var blockIndex);
-                                    var terrainData = ChunkManager.chunks_getTerrainData(chunkIndex, blockIndex);
-
-                                    chunkIds.Add(chunkIndex);
-
-                                    if (terrainData > 0 && terrainData < GameRoot.BUILDING_PART_ARRAY_IDX_START)
-                                    {
-                                        var worldPos = new Vector3Int(wx, wy, wz);
-                                        GameRoot.addLockstepEvent(new Character.RemoveTerrainEvent(character.usernameHash, worldPos, ulong.MaxValue));
-                                        GameRoot.addLockstepEvent(new BuildEntityEvent(character.usernameHash, terrainBlockType.parentBOT.parentItemTemplate.id, 0, worldPos, 0, Quaternion.identity, 0, 0, false));
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    foreach (var chunkIndex in chunkIds)
-                    {
-                        ChunkManager.getChunkCoordsFromChunkIdx(chunkIndex, out var chunkX, out var chunkZ);
-                        var count = ChunkManager.chunks_getOrePatchCount(chunkIndex);
-                        var orePatchData = new Chunk.OrePatchData[count];
-                        ChunkManager.chunks_populateOrePatchData(chunkIndex, orePatchData, count);
-                        ChatFrame.addMessage($"Found {count} ore patches in chunk {chunkIndex} {chunkX}x{chunkZ}", 0);
-                    }
-                }
-
-                var oreVeinTemplateName = arguments[0].ToLower();
-                List<TerrainBlockType> foundTemplates = new List<TerrainBlockType>();
-                foreach(var template in ItemTemplateManager.getAllTerrainTemplates().Values)
-                {
-                    if (template.parentBOT != null && template.parentBOT.identifier.StartsWith("_erkle_terrain"))
-                    {
-                        ChatFrame.addMessage($"Found ore type: {template.identifier}", 0);
-
-                        if(template.identifier.ToLower() == oreVeinTemplateName || template.name.ToLower() == oreVeinTemplateName)
-                        {
-                            SpawnOreVein(template);
-                            break;
-                        }
-                        else if(template.identifier.ToLower().Contains(oreVeinTemplateName) || template.name.ToLower().Contains(oreVeinTemplateName))
-                        {
-                            foundTemplates.Add(template);
-                        }
-                    }
-                }
-                switch(foundTemplates.Count)
-                {
-                    case 0: ChatFrame.addMessage("Found no matching ore block template", 0); break;
-                    case 1: SpawnOreVein(foundTemplates[0]); break;
-                    default:
-                        ChatFrame.addMessage("Found multiple matches:", 0);
-                        foreach(var template in foundTemplates)
-                        {
-                            ChatFrame.addMessage($"name: {template.name}    ident: {template.identifier}", 0);
-                        }
-                        break;
-                }
             }),
             new CommandHandler(@"^\/give(?:\s+([\s\w\d]*?)(?:\s+(\d+))?)?$", (string[] arguments) => {
                 void GiveItem(ItemTemplate item, uint amount)
