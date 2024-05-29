@@ -4,13 +4,14 @@ using System.Reflection;
 using Unfoundry;
 using UnityEngine;
 using System.IO;
-using System.Threading;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System;
 using Expressive;
 using Expressive.Exceptions;
+using static BuildingModeHelpers;
+using C3;
 
 namespace FoundryCommands
 {
@@ -21,9 +22,11 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.4";
+            VERSION = "1.6.5";
 
         public static LogSource log;
+
+        public static TypedConfigEntry<int> maxDragBuffer;
 
         private static Vector3 _lastPositionAtTeleport = Vector3.zero;
         private static bool _hasTeleported = false;
@@ -31,6 +34,17 @@ namespace FoundryCommands
         public Plugin()
         {
             log = new LogSource(MODNAME);
+
+            new Config(GUID)
+                .Group("Drag")
+                    .Entry(out maxDragBuffer, "maxDragBuffer", 2046,
+                        "WARNING: Experimental feature!",
+                        "May cause crashing if used incorrectly.",
+                        "The maximum number of blocks that can be dragged at once.",
+                        "Will be rounded up to the next multiple of 1023.")
+                .EndGroup()
+                .Load()
+                .Save();
         }
 
         public override void Load(Mod mod)
@@ -44,6 +58,7 @@ namespace FoundryCommands
         public static string dataFolder;
         public static string dumpFolder;
 
+        private static float _dragPlanScaleModifier = 1.0f;
         private static readonly FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private const ulong TICKS_PER_DAY = GameRoot.TIME_SYSTEM_TICKS_PER_DAY;
@@ -68,44 +83,9 @@ namespace FoundryCommands
                 {
                     case 1:
                         var range = float.Parse(arguments[0]);
-                        if(range < 38) range = 38;
-                        ChatFrame.addMessage($"Setting drag area to {(int)range}", 0);
-                        range = ((int)range) - 0.5f;
-                        var range2 = range*2.0f;
-                        var gameRoot = GameRoot.getSingleton();
-                        var dragHelperGO = Traverse.Create(gameRoot).Field("dragHelperGO").GetValue() as DragHelperGO;
-                        var dragHelperGO_bulkDemolish = Traverse.Create(gameRoot).Field("dragHelperGO_bulkDemolish").GetValue() as DragHelperGO;
-                        dragHelperGO.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
-                        dragHelperGO.collider_wall_z.size = new Vector3(0.05f, range2, range2);
-                        dragHelperGO_bulkDemolish.collider_area_xz.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO_bulkDemolish.collider_area_xz_elevated.size = new Vector3(range2, 0.05f, range2);
-                        dragHelperGO_bulkDemolish.collider_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.collider_wall_x.size = new Vector3(range2, range2, 0.05f);
-                        dragHelperGO_bulkDemolish.collider_wall_z.size = new Vector3(0.05f, range2, range2);
-
-                        dragHelperGO.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-                        dragHelperGO.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-                        dragHelperGO.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_area_xz.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_area_xz.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_area_xz_elevated.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_area_xz_elevated.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_slope.transform.localScale = new Vector3(range2, 0.1f, range2);
-                        dragHelperGO_bulkDemolish.go_slope.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_wall_x.transform.localScale = new Vector3(range2, range2, 0.1f);
-                        dragHelperGO_bulkDemolish.go_wall_x.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
-                        dragHelperGO_bulkDemolish.go_wall_z.transform.localScale = new Vector3(0.1f, range2, range2);
-                        dragHelperGO_bulkDemolish.go_wall_z.GetComponent<MeshRenderer>().material.SetTextureScale("_TextureY", new Vector2(range2, range2));
+                        if(range < 38.0f) range = 38.0f;
+                        _dragPlanScaleModifier = (range - 0.5f) / 37.5f;
+                        ChatFrame.addMessage($"Drag scale set to {range}.", 0);
                         break;
 
                     default:
@@ -462,6 +442,57 @@ namespace FoundryCommands
         [HarmonyPatch]
         public static class Patch
         {
+            private static Vector3 scale_wall_x = Vector3.one;
+            private static Vector3 scale_wall_z = Vector3.one;
+            private static Vector3 scale_slope = Vector3.one;
+            private static Material material_scaled = null;
+
+            [HarmonyPatch(typeof(DragModeWorkingData), nameof(DragModeWorkingData.init))]
+            [HarmonyPostfix]
+            public static void DragModeWorkingData_init(DragModeWorkingData __instance)
+            {
+                var maxDragBuffer = Plugin.maxDragBuffer.Get();
+                if (maxDragBuffer > 1023 * 2)
+                {
+                    var maxDragBufferCount = Mathf.CeilToInt(maxDragBuffer / 1023.0f);
+                    var maxDragBufferSize = maxDragBufferCount * 1023;
+                    __instance.dragPositions = new Vector3Int[maxDragBufferSize];
+                    __instance.dragValidationArray = new bool[maxDragBufferSize];
+                    __instance.dmrc_dragMatrices_green = new DrawMeshRenderingContainer(maxDragBufferCount, false);
+                    __instance.dmrc_dragMatrices_red = new DrawMeshRenderingContainer(maxDragBufferCount, false);
+                }
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), "Awake")]
+            [HarmonyPostfix]
+            public static void DragHelperGO_Awake(DragHelperGO __instance)
+            {
+                scale_wall_x = __instance.go_wall_x.transform.localScale;
+                scale_wall_z = __instance.go_wall_z.transform.localScale;
+                scale_slope = __instance.go_slope.transform.localScale;
+                material_scaled = __instance.go_wall_x.GetComponent<MeshRenderer>().sharedMaterial;
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), nameof(DragHelperGO.setMode))]
+            [HarmonyPrefix]
+            public static void DragHelperGO_setMode(ref float dragPlanScaleModifier)
+            {
+                if (dragPlanScaleModifier < _dragPlanScaleModifier) dragPlanScaleModifier = _dragPlanScaleModifier;
+            }
+
+            [HarmonyPatch(typeof(DragHelperGO), nameof(DragHelperGO.setMode))]
+            [HarmonyPostfix]
+            public static void DragHelperGO_setMode(DragHelperGO __instance, BuildableObjectTemplate bot, BuildableObjectTemplate.DragBuildType dragBuildType, float dragPlanScaleModifier)
+            {
+                __instance.go_wall_x.transform.localScale = new Vector3(scale_wall_x.x * dragPlanScaleModifier, scale_wall_x.y * dragPlanScaleModifier, scale_wall_x.z);
+                __instance.go_wall_z.transform.localScale = new Vector3(scale_wall_z.x, scale_wall_z.y * dragPlanScaleModifier, scale_wall_z.z * dragPlanScaleModifier);
+                __instance.go_slope.transform.localScale = new Vector3(scale_slope.x * dragPlanScaleModifier, scale_slope.y, scale_slope.z * dragPlanScaleModifier);
+                __instance.collider_wall_x.size = new Vector3(scale_wall_x.x * dragPlanScaleModifier + 0.5f, scale_wall_x.y * dragPlanScaleModifier + 0.5f, scale_wall_x.z);
+                __instance.collider_wall_z.size = new Vector3(scale_wall_z.x, scale_wall_z.y * dragPlanScaleModifier + 0.5f, scale_wall_z.z * dragPlanScaleModifier + 0.5f);
+
+                material_scaled.SetTextureScale("_TextureY", new Vector2(scale_wall_x.x * dragPlanScaleModifier, scale_wall_x.y * dragPlanScaleModifier));
+            }
+
             [HarmonyPatch(typeof(ChatFrame), nameof(ChatFrame.onReturnCB))]
             [HarmonyPrefix]
             public static bool ChatFrame_onReturnCB()
