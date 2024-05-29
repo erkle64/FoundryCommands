@@ -59,8 +59,7 @@ namespace FoundryCommands
         public static string dumpFolder;
 
         private static float _dragPlanScaleModifier = 1.0f;
-
-        private static FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo timeInTicks = typeof(GameRoot).GetField("timeInTicks", BindingFlags.NonPublic | BindingFlags.Instance);
 
         private const ulong TICKS_PER_DAY = GameRoot.TIME_SYSTEM_TICKS_PER_DAY;
         private const ulong TICKS_PER_HOUR = GameRoot.TIME_SYSTEM_TICKS_PER_DAY / 24UL;
@@ -114,9 +113,7 @@ namespace FoundryCommands
                 {
                     if (wp.description.ToLower() == wpName.ToLower())
                     {
-                        ulong cidx;
-                        uint tidx;
-                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wp.waypointPosition.x,wp.waypointPosition.y,wp.waypointPosition.z,out cidx,out tidx);
+                        ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(wp.waypointPosition.x,wp.waypointPosition.y,wp.waypointPosition.z,out ulong cidx,out uint tidx);
                         var chunk = ChunkManager.getChunkByWorldCoords(wp.waypointPosition.x, wp.waypointPosition.z);
                         if(chunk != null)
                         {
@@ -156,9 +153,7 @@ namespace FoundryCommands
                     Mathf.FloorToInt(_lastPositionAtTeleport.z)
                     );
 
-                ulong cidx;
-                uint tidx;
-                ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(targetCube.x,targetCube.y,targetCube.z,out cidx,out tidx);
+                ChunkManager.getChunkIdxAndTerrainArrayIdxFromWorldCoords(targetCube.x,targetCube.y,targetCube.z,out ulong cidx,out uint tidx);
                 var chunk = ChunkManager.getChunkByWorldCoords(targetCube.x, targetCube.z);
                 if(chunk != null)
                 {

@@ -31,10 +31,10 @@ All commands are case insensitve.
 - **/drag** _range_
    Change the maximum range for drag building.  Use /drag 0 to restore default.
 
-- **/tp** _waypoint-name_ *or* **/teleport** _waypoint-name_
+- **/tp** _waypoint-name_ or **/teleport** _waypoint-name_
    Teleport to the named waypoint.
 
-- **/tpr** *or* **/ret** *or* **/return**
+- **/tpr** or **/ret** or **/return**
    Teleport back to position at last teleport.
 
 - **/give** _item_
