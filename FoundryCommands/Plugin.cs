@@ -22,7 +22,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.5";
+            VERSION = "1.6.6";
 
         public static LogSource log;
 
@@ -93,7 +93,7 @@ namespace FoundryCommands
                         return;
                 }
             }),
-            new CommandHandler(@"^\/(?:(?:tp)|(?:teleport))(?:\s+([\s\w\d]*?)\s*)?$", (string[] arguments) => {
+            new CommandHandler(@"^\/(?:(?:tp)|(?:teleport))(?:\s+(.*?)\s*)?$", (string[] arguments) => {
                 if (arguments.Length == 0 || arguments[0].Length == 0)
                 {
                     ChatFrame.addMessage("Usage: <b>/tp</b> <i>waypoint-name</i>", 0);
@@ -237,7 +237,7 @@ namespace FoundryCommands
                 ChatFrame.addMessage($"Counts saved to {dumpFolder}\\count.txt", 0);
                 ChatFrame.addMessage($"Total: {buildings.Count}", 0);
             }),
-            new CommandHandler(@"^\/give(?:\s+([\s\w\d]*?)(?:\s+(\d+))?)?$", (string[] arguments) => {
+            new CommandHandler(@"^\/give(?:\s+(.+?)(?:\s+(\d+))?)?$", (string[] arguments) => {
                 void GiveItem(ItemTemplate item, uint amount)
                 {
                     if (amount == 0) amount = item.stackSize;
