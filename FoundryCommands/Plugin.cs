@@ -22,10 +22,11 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.6";
+            VERSION = "1.6.7";
 
         public static LogSource log;
 
+        public static TypedConfigEntry<float> dragRange;
         public static TypedConfigEntry<int> maxDragBuffer;
 
         private static Vector3 _lastPositionAtTeleport = Vector3.zero;
@@ -37,6 +38,7 @@ namespace FoundryCommands
 
             new Config(GUID)
                 .Group("Drag")
+                    .Entry(out dragRange, "dragRange", 38.0f, onDragRangeChanged, "Default drag range.", "Automatically set by the /drag command.")
                     .Entry(out maxDragBuffer, "maxDragBuffer", 2046,
                         "WARNING: Experimental feature!",
                         "May cause crashing if used incorrectly.",
@@ -45,6 +47,8 @@ namespace FoundryCommands
                 .EndGroup()
                 .Load()
                 .Save();
+
+            onDragRangeChanged(38.0f, dragRange.Get());
         }
 
         public override void Load(Mod mod)
@@ -76,6 +80,12 @@ namespace FoundryCommands
             return (ulong)hours * TICKS_PER_HOUR + (ulong)minutes * TICKS_PER_MINUTE;
         }
 
+        private void onDragRangeChanged(float oldValue, float newValue)
+        {
+            if (newValue < 38.0f) newValue = 38.0f;
+            _dragPlanScaleModifier = (newValue - 0.5f) / 37.5f;
+        }
+
         public static CommandHandler[] commandHandlers = new CommandHandler[]
         {
             new CommandHandler(@"^\/drag\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
@@ -84,7 +94,7 @@ namespace FoundryCommands
                     case 1:
                         var range = float.Parse(arguments[0]);
                         if(range < 38.0f) range = 38.0f;
-                        _dragPlanScaleModifier = (range - 0.5f) / 37.5f;
+                        dragRange.Set(range);
                         ChatFrame.addMessage($"Drag scale set to {range}.", 0);
                         break;
 
