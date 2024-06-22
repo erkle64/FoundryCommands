@@ -12,6 +12,7 @@ using Expressive;
 using Expressive.Exceptions;
 using static BuildingModeHelpers;
 using C3;
+using CubeInterOp;
 
 namespace FoundryCommands
 {
@@ -22,7 +23,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.7";
+            VERSION = "1.6.8";
 
         public static LogSource log;
 
@@ -57,6 +58,83 @@ namespace FoundryCommands
 
             dataFolder = Application.persistentDataPath;
             dumpFolder = Path.Combine(dataFolder, MODNAME);
+
+            CommonEvents.OnUpdate += Update;
+        }
+
+        private static ulong _monitorEntityId = 0;
+        private static bool _monitorActive = false;
+        private static float _monitorTime = 0.0f;
+        private static float _monitorTimeStart = 0.0f;
+        private static float _monitorInterval = 1.0f;
+        private static float _monitorContent = 0.0f;
+        private static float _monitorContentStart = 0.0f;
+        private static BuildableObjectTemplate.BuildableObjectType _monitorType = BuildableObjectTemplate.BuildableObjectType.Tank;
+        private static ItemBufferPollingUpdateData[] _monitorItemBufferPollingUpdateData = new ItemBufferPollingUpdateData[64];
+        private void Update()
+        {
+            if (_monitorActive && Time.time > _monitorTime)
+            {
+                _monitorTime += _monitorInterval;
+
+                var delta = 0.0f;
+                var deltaTotal = 0.0f;
+                var unit = "L";
+                switch (_monitorType)
+                {
+                    case BuildableObjectTemplate.BuildableObjectType.Storage:
+                        {
+                            ulong inventoryId = 0UL;
+                            if (BuildingManager.buildingManager_getInventoryAccessors(_monitorEntityId, 0U, ref inventoryId) == IOBool.iofalse) return;
+
+                            var inventoryPtr = InventoryManager.inventoryManager_getInventoryPtr(inventoryId);
+
+                            _monitorActive = true;
+                            _monitorType = BuildableObjectTemplate.BuildableObjectType.Storage;
+
+                            var slotCount = InventoryManager.inventoryManager_getInventorySlotCountByPtr(inventoryPtr);
+                            uint totalItemCount = 0;
+                            ushort itemTemplateRunningIdx = 0;
+                            ushort lockedTemplateRunningIdx = 0;
+                            uint itemCount = 0;
+                            IOBool isLocked = IOBool.iofalse;
+                            for (uint i = 0; i < slotCount; i++)
+                            {
+                                InventoryManager.inventoryManager_getSingleSlotDataByPtr(inventoryPtr, i, ref itemTemplateRunningIdx, ref itemCount, ref lockedTemplateRunningIdx, ref isLocked, IOBool.iofalse);
+                                totalItemCount += itemCount;
+                            }
+                            delta = totalItemCount - _monitorContent;
+                            _monitorContent = totalItemCount;
+                            deltaTotal = totalItemCount - _monitorContentStart;
+                            unit = string.Empty;
+                        }
+                        break;
+
+                    case BuildableObjectTemplate.BuildableObjectType.Tank:
+                        {
+                            var data = new TankPollingUpdateData();
+                            TankGO.tankEntity_queryPollingData(_monitorEntityId, ref data);
+                            delta = data.content_l - _monitorContent;
+                            _monitorContent = data.content_l;
+                            deltaTotal = data.content_l - _monitorContentStart;
+                        }
+                        break;
+
+                    case BuildableObjectTemplate.BuildableObjectType.ModularFluidTank:
+                        {
+                            var data = new ModularFluidTankPollingUpdateData();
+                            ModularFluidTankBaseGO.modularFluidTankEntity_queryPollingData(_monitorEntityId, ref data);
+                            delta = data.fbData.content_l - _monitorContent;
+                            _monitorContent = data.fbData.content_l;
+                            deltaTotal = data.fbData.content_l - _monitorContentStart;
+                        }
+                        break;
+                }
+
+                var timeTotal = Time.time - _monitorTimeStart;
+
+                ChatFrame.addMessage($"Monitor: {delta / _monitorInterval:+0.##;-0.##;0}{unit}/s  [{60.0f * deltaTotal / timeTotal:+0.##;-0.##;0}{unit}/m]  ({Mathf.RoundToInt(_monitorContent)}{unit})", 0);
+            }
         }
 
         public static string dataFolder;
@@ -175,6 +253,78 @@ namespace FoundryCommands
                 {
                     ChatFrame.addMessage("Ungenerated chunk.", 0);
                     ChunkManager.generateNewChunksBasedOnPosition(_lastPositionAtTeleport, ChunkManager._getChunkLoadDistance());
+                }
+            }),
+            new CommandHandler(@"^\/(?:(?:monitor)|(?:mon))\s*?(?:\s+(\d+(?:\.\d*)?))?$", (string[] arguments) => {
+                var renderCharacter = GameRoot.getClientRenderCharacter();
+                if (renderCharacter == null) return;
+
+                _monitorActive = false;
+
+                var hit = renderCharacter.getDemolitionInteractionTarget(
+                    100.0f,
+                    out var bogo,
+                    out var entityId,
+                    out var bpIdx,
+                    out var hitDecor,
+                    out var hitTerrain,
+                    out var bot,
+                    out var isPlaceholder,
+                    out var placeholderId,
+                    out var powerlineGO);
+                if (!hit || bogo == null || isPlaceholder) return;
+                
+                var interval = 1.0f;
+                try {
+                    if (arguments.Length > 0) interval = Convert.ToSingle(arguments[0], System.Globalization.CultureInfo.InvariantCulture);
+                }
+                catch { }
+
+                _monitorInterval = interval;
+                _monitorEntityId = entityId;
+                _monitorTimeStart = Time.time;
+                _monitorTime = _monitorTimeStart + _monitorInterval;
+
+                if (bogo is TankGO)
+                {
+                    var data = new TankPollingUpdateData();
+                    if (TankGO.tankEntity_queryPollingData(_monitorEntityId, ref data) == IOBool.iofalse) return;
+
+                    _monitorActive = true;
+                    _monitorType = BuildableObjectTemplate.BuildableObjectType.Tank;
+                    _monitorContentStart = _monitorContent = data.content_l;
+                }
+                else if (bogo is ChestGO)
+                {
+                    ulong inventoryId = 0UL;
+                    if (BuildingManager.buildingManager_getInventoryAccessors(_monitorEntityId, 0U, ref inventoryId) == IOBool.iofalse) return;
+
+                    var inventoryPtr = InventoryManager.inventoryManager_getInventoryPtr(inventoryId);
+
+                    _monitorActive = true;
+                    _monitorType = BuildableObjectTemplate.BuildableObjectType.Storage;
+
+                    var slotCount = InventoryManager.inventoryManager_getInventorySlotCountByPtr(inventoryPtr);
+                    uint totalItemCount = 0;
+                    ushort itemTemplateRunningIdx = 0;
+                    ushort lockedTemplateRunningIdx = 0;
+                    uint itemCount = 0;
+                    IOBool isLocked = IOBool.iofalse;
+                    for (uint i = 0; i < slotCount; i++)
+                    {
+                        InventoryManager.inventoryManager_getSingleSlotDataByPtr(inventoryPtr, i, ref itemTemplateRunningIdx, ref itemCount, ref lockedTemplateRunningIdx, ref isLocked, IOBool.iofalse);
+                        totalItemCount += itemCount;
+                    }
+                    _monitorContentStart = _monitorContent = totalItemCount;
+                }
+                else if (bogo is ModularFluidTankBaseGO)
+                {
+                    var data = new ModularFluidTankPollingUpdateData();
+                    if (ModularFluidTankBaseGO.modularFluidTankEntity_queryPollingData(_monitorEntityId, ref data) == IOBool.iofalse) return;
+
+                    _monitorActive = true;
+                    _monitorType = BuildableObjectTemplate.BuildableObjectType.ModularFluidTank;
+                    _monitorContentStart = _monitorContent = data.fbData.content_l;
                 }
             }),
             new CommandHandler(@"^\/time$", (string[] arguments) => {
