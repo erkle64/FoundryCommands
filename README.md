@@ -16,6 +16,12 @@ All commands are case insensitve.
 
 #### Commands
 
+- **/monitor** or **/mon**
+   Monitors a tank, modular tank or logistics container's contents once per second.  Use while not looking at a valid building to stop.
+
+- **/monitor** _interval_ or **/mon** _interval_
+   Monitors a tank, modular tank or logistics container's contents with a custom interval.  Use while not looking at a valid building to stop.
+
 - **/time**
    Displays the current time of day.
 
