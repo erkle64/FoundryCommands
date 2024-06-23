@@ -23,7 +23,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.8";
+            VERSION = "1.6.9";
 
         public static LogSource log;
 
@@ -326,6 +326,9 @@ namespace FoundryCommands
                     _monitorType = BuildableObjectTemplate.BuildableObjectType.ModularFluidTank;
                     _monitorContentStart = _monitorContent = data.fbData.content_l;
                 }
+            }),
+            new CommandHandler(@"^\/(?:(?:skyPlatform)|(?:sp))$", (string[] arguments) => {
+                SkyPlatformFrame.showFrame();
             }),
             new CommandHandler(@"^\/time$", (string[] arguments) => {
                 var gameRoot = GameRoot.getSingleton();
