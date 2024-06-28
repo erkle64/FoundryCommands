@@ -23,7 +23,7 @@ namespace FoundryCommands
             MODNAME = "FoundryCommands",
             AUTHOR = "erkle64",
             GUID = AUTHOR + "." + MODNAME,
-            VERSION = "1.6.9";
+            VERSION = "1.6.10";
 
         public static LogSource log;
 
@@ -32,6 +32,11 @@ namespace FoundryCommands
 
         private static Vector3 _lastPositionAtTeleport = Vector3.zero;
         private static bool _hasTeleported = false;
+
+        private static Dictionary<string, object> _calculatorVariables = new Dictionary<string, object>()
+        {
+            { "result", 0 }
+        };
 
         public Plugin()
         {
@@ -363,8 +368,13 @@ namespace FoundryCommands
             }),
             new CommandHandler(@"^\/(?:(?:c)|(?:calc)|(?:calculate))\s+(.+)$", (string[] arguments) => {
                 try {
-                    var expression = new Expression(arguments[0].Trim(), ExpressiveOptions.IgnoreCaseForParsing | ExpressiveOptions.NoCache);
-                    var result = expression.Evaluate();
+
+                    var regex = new Regex(@"(?!<\w)(?:(?:result)|(?:res)|(?:r))(?!\w)", RegexOptions.IgnoreCase);
+                    var expression = new Expression(
+                        regex.Replace(arguments[0].Trim(), @"[result]"),
+                        ExpressiveOptions.IgnoreCaseForParsing | ExpressiveOptions.NoCache);
+                    var result = expression.Evaluate(_calculatorVariables);
+                    _calculatorVariables["result"] = result;
                     ChatFrame.addMessage($"{arguments[0]} = {result}", 0);
                 }
                 catch(ExpressiveException e)
